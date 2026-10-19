@@ -23,6 +23,8 @@
     <string name="menu_hidden_apps">Ausgeblendete Apps (%1$d)</string>
     <string name="menu_art_on">Hintergrundbilder: An</string>
     <string name="menu_art_off">Hintergrundbilder: Aus</string>
+    <string name="menu_sounds_on">Navigationstöne: An</string>
+    <string name="menu_sounds_off">Navigationstöne: Aus</string>
     <string name="menu_app_info">App-Info</string>
     <string name="menu_uninstall">Deinstallieren</string>
     <string name="home_options">Startbildschirm-Optionen</string>

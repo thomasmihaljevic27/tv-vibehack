@@ -24,6 +24,8 @@
     <string name="menu_hidden_apps">Hidden apps (%1$d)</string>
     <string name="menu_art_on">Background art: On</string>
     <string name="menu_art_off">Background art: Off</string>
+    <string name="menu_sounds_on">Navigation sounds: On</string>
+    <string name="menu_sounds_off">Navigation sounds: Off</string>
     <string name="menu_app_info">App info</string>
     <string name="menu_uninstall">Uninstall</string>
     <string name="home_options">Home screen options</string>

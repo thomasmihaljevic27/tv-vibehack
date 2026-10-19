@@ -11,6 +11,7 @@
         <item>com.google.android.youtube.tv</item>
         <item>com.amazon.amazonvideo.livingroom</item>
         <item>com.disney.disneyplus</item>
+        <item>com.apple.atve.androidtv.appletv</item>
     </string-array>
 
     <!-- Apps never shown as tiles (e.g. the Live TV app, which the Inputs menu already covers). -->
@@ -27,5 +28,5 @@
     <bool name="background_art">false</bool>
 
     <!-- Tiles per row in the grid; the dock always has this many slots. -->
-    <integer name="columns">4</integer>
+    <integer name="columns">5</integer>
 </resources>

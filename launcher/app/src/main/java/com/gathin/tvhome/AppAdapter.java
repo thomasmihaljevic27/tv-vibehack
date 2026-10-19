@@ -249,10 +249,40 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         }
     }
 
+    /** Tile width at 4 columns or fewer (item_app.xml), and the gap kept between tiles when more fit a row. */
+    private static final int MAX_CARD_DP = 180, GAP_DP = 26;
+    /** item_app.xml: vertical padding (8 + 8), space between card and name (7) and the name line (22). */
+    private static final int ITEM_EXTRA_DP = 45;
+
+    /** Card {width, height} in px for a grid this wide: as large as fits the columns, 16:9 like a TV banner. */
+    static int[] cardSize(int gridWidth, int columns, float density) {
+        int w = (int) (MAX_CARD_DP * density);
+        if (gridWidth > 0) w = Math.min(w, gridWidth / columns - (int) (GAP_DP * density));
+        return new int[]{w, Math.round(w * 101f / 180f)};
+    }
+
+    /** Height of one grid row (an item_app) in px, for a card of this height. */
+    static int itemHeight(int cardHeight, float density) {
+        return cardHeight + (int) (ITEM_EXTRA_DP * density);
+    }
+
     @NonNull
     @Override
     public Holder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_app, parent, false);
+        // Size the card (and its name line) to the column width: 180dp tiles don't fit five across.
+        float density = parent.getResources().getDisplayMetrics().density;
+        int[] size = cardSize(parent.getWidth(), dockSize, density);
+        View card = v.findViewById(R.id.card);
+        ViewGroup.LayoutParams cp = card.getLayoutParams();
+        cp.width = size[0];
+        cp.height = size[1];
+        card.setLayoutParams(cp);
+        View name = v.findViewById(R.id.name);
+        ViewGroup.MarginLayoutParams np = (ViewGroup.MarginLayoutParams) name.getLayoutParams();
+        np.width = size[0];
+        np.topMargin = size[1] + (int) (7 * density);
+        name.setLayoutParams(np);
         return new Holder(v, listener);
     }
 

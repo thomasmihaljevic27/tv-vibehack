@@ -83,6 +83,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private PopupWindow tileMenu, topMenu;
     private ValueAnimator wiggle;
     private ArtSlideshow art;
+    private NavSound sound;
     // Static so they survive the activity being destroyed while another app is open (low-memory TVs,
     // or Developer options → "Don't keep activities"); they only reset when the process dies.
     private static int lastFocused = 0;
@@ -130,6 +131,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ambient.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) ->
                 ambientGlow.setGradientRadius((r - l) * 0.62f));
         btnMenu = findViewById(R.id.btnMenu);
+        sound = new NavSound(this);
         art = new ArtSlideshow(this, findViewById(R.id.artLayer), findViewById(R.id.artA), findViewById(R.id.artB),
                 findViewById(R.id.artScrim), findViewById(R.id.artCaption));
 
@@ -146,7 +148,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // tvOS layout: push the dock row to the bottom of the screen; the grid hides below until you press Down.
         grid.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
             int h = b - t;
-            int dockRow = (int) ((145 + 6 + 12) * density);   // item height plus DockDecoration offsets
+            int card = AppAdapter.cardSize(r - l, COLUMNS, density)[1];
+            int dockRow = AppAdapter.itemHeight(card, density) + (int) ((6 + 12) * density);   // plus DockDecoration offsets
             int want = Math.max(0, h - dockRow - (int) (30 * density));
             if (grid.getPaddingTop() != want) {
                 grid.setPadding(grid.getPaddingLeft(), want, grid.getPaddingRight(), grid.getPaddingBottom());
@@ -203,10 +206,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 && (keyCode == KeyEvent.KEYCODE_DPAD_UP || keyCode == KeyEvent.KEYCODE_DPAD_LEFT
                 || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT));
 
-        // Hide the glass when focus leaves the tiles.
+        // Hide the glass when focus leaves the tiles; tick on every move between tiles and the top button.
         getWindow().getDecorView().getViewTreeObserver().addOnGlobalFocusChangeListener((oldF, newF) -> {
             boolean onTile = newF != null && newF.getId() == R.id.card;
             if (!onTile) hideGlass();
+            if (oldF != null && newF != null) sound.move();
         });
 
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
@@ -225,6 +229,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onResume() {
         super.onResume();
         front = new WeakReference<>(this);
+        sound.quiet(800);   // focusTile() below puts focus back by itself; that's not a move
         glassShown = false;
         glass.setAlpha(0f);
         heroShown = false;
@@ -257,6 +262,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onDestroy() {
         super.onDestroy();
         art.shutdown();
+        sound.release();
         unregisterReceiver(screenOn);
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         if (cm != null) cm.unregisterNetworkCallback(networkCallback);
@@ -341,7 +347,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void showHero(int position, float dockTopInRoot) {
         String label = adapter.labelAt(position);
-        int color = adapter.ambientColorAt(position);
+        // With a painting up, the glow under it keeps the painting's colour, so coming back from the grid
+        // the art fades in over an unchanged glow; without one, the glow takes the focused app's colour.
+        int artColor = art.accentColor();
+        int color = artColor != 0 ? artColor : adapter.ambientColorAt(position);
         float y = dockTopInRoot - 14 * density - 26 * density - heroName.getHeight();
         boolean changed = !label.contentEquals(heroName.getText());
 
@@ -382,8 +391,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (!heroShown) return;
         heroShown = false;
         heroName.animate().alpha(0f).setDuration(160).start();
-        ambient.animate().alpha(0f).setDuration(300).start();
         art.stop();
+        // In the grid the painting gives way to the original glow, in a colour taken from the painting.
+        // Without art (off, or nothing loaded yet) the grid stays black, as before.
+        int color = art.accentColor();
+        if (color == 0) {
+            ambient.animate().alpha(0f).setDuration(300).start();
+        } else if (color != ambientColor) {
+            ambient.animate().alpha(0.35f).setDuration(200).withEndAction(() -> {
+                setAmbient(color);
+                ambient.animate().alpha(1f).setDuration(600).withEndAction(null).start();
+            }).start();
+        }
     }
 
     private void hideGlass() {
@@ -533,6 +552,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.animate().alpha(1f).scaleY(1f).translationY(0f).setDuration(220)
                 .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
         rows.getChildAt(0).requestFocus();
+        armMenuSound(rows);
     }
 
     private void startMove(int position) {
@@ -565,6 +585,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void moveTile(int from, int to) {
         adapter.move(from, to);
+        sound.move();   // the moved tile keeps focus, so no focus change fires
         movingPos = to;
         // After the move is laid out: keep focus on the moved tile and bring the glass (and dock shelf) along.
         // A fixed-size RecyclerView applies moves in an animation callback, not a layout pass, so queue
@@ -755,6 +776,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.animate().alpha(1f).scaleY(1f).translationY(0f).setDuration(220)
                 .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
         rows.getChildAt(0).requestFocus();
+        armMenuSound(rows);
     }
 
     /** The remote's gear button (GearKeyService): open the top menu, or close it if it's already open. */
@@ -802,6 +824,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             art.setEnabled(!artOn);
             if (!artOn && heroShown) art.start();
         });
+        boolean soundsOn = sound.isEnabled();
+        addInputRow(rows, popup, R.drawable.ic_sound,
+                getString(soundsOn ? R.string.menu_sounds_on : R.string.menu_sounds_off), -1,
+                () -> sound.setEnabled(!soundsOn));
         showMenu(popup, rows, btnMenu);
     }
 
@@ -810,6 +836,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         String category = getString(R.string.settings_category).trim();
         return category.isEmpty() ? new Intent(Settings.ACTION_SETTINGS)
                 : new Intent(Intent.ACTION_MAIN).addCategory(category);
+    }
+
+    /** Tick on row moves in this menu from now on (after its first row took focus). */
+    private static void armMenuSound(LinearLayout rows) {
+        rows.post(() -> rows.setTag(Boolean.TRUE));
     }
 
     private void addSeparator(LinearLayout rows) {
@@ -842,6 +873,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         row.setOnClickListener(v -> {
             popup.dismiss();
             action.run();
+        });
+        // Menus live in their own window, out of reach of the activity's focus listener. The first row's
+        // focus when a menu opens isn't a move: armMenuSound() turns the tick on after it.
+        row.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus && Boolean.TRUE.equals(rows.getTag())) sound.move();
         });
         rows.addView(row);
     }

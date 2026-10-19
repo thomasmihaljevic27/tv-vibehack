@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
@@ -103,6 +104,8 @@ final class ArtSlideshow {
      * (requestCaption), not when coming back from an app, so the credit doesn't nag on every return.
      */
     private boolean captionPending;
+    /** accentOf() the painting on display. */
+    private int accent;
     private final Runnable hideCaption = this::fadeCaptionOut;
     private final Runnable next = () -> {
         dueAt = 0;
@@ -225,12 +228,61 @@ final class ArtSlideshow {
             }
             final Art shown = art;
             final Bitmap result = bmp;
+            final int color = bmp != null ? accentOf(bmp) : 0;
             main.post(() -> {
                 loading = false;
-                if (result != null) show(result, shown);
+                if (result != null) {
+                    accent = color;
+                    show(result, shown);
+                }
                 else if (running) schedule(hasImage ? SLIDE_MS : RETRY_MS);
             });
         });
+    }
+
+    /**
+     * A colour from the painting on display, for the glow behind the app grid; 0 while art is off or nothing
+     * has loaded yet.
+     */
+    int accentColor() {
+        return hasImage && isEnabled() ? accent : 0;
+    }
+
+    /**
+     * The painting's most telling colour: the average of its most saturated, mid-bright pixels (single pixels
+     * are noise in a canvas texture), then lifted so it still reads as a colour once spread thin as a glow.
+     */
+    private static int accentOf(Bitmap bmp) {
+        Bitmap small = Bitmap.createScaledBitmap(bmp, 48, 27, true);
+        int n = small.getWidth() * small.getHeight();
+        float[] hsv = new float[3];
+        float[] scores = new float[n];
+        int[] pixels = new int[n];
+        small.getPixels(pixels, 0, small.getWidth(), 0, 0, small.getWidth(), small.getHeight());
+        if (small != bmp) small.recycle();
+        for (int i = 0; i < n; i++) {
+            Color.colorToHSV(pixels[i], hsv);
+            float v = hsv[2];
+            // Saturated, and neither near-black shadow nor blown-out sky.
+            scores[i] = hsv[1] * (v < 0.2f ? 0f : v > 0.92f ? 0.4f : 1f) * (0.5f + v);
+        }
+        float[] sorted = scores.clone();
+        java.util.Arrays.sort(sorted);
+        float cutoff = sorted[(int) (n * 0.9f)];   // top 10%
+        long r = 0, g = 0, b = 0;
+        int count = 0;
+        for (int i = 0; i < n; i++) {
+            if (scores[i] < cutoff) continue;
+            r += Color.red(pixels[i]);
+            g += Color.green(pixels[i]);
+            b += Color.blue(pixels[i]);
+            count++;
+        }
+        if (count == 0) return 0;
+        Color.colorToHSV(Color.rgb((int) (r / count), (int) (g / count), (int) (b / count)), hsv);
+        hsv[1] = Math.max(0.35f, Math.min(0.85f, hsv[1] * 1.2f));
+        hsv[2] = Math.max(0.6f, Math.min(0.9f, hsv[2] * 1.15f));
+        return Color.HSVToColor(hsv);
     }
 
     /** Cross-fade the new image in on top of the old one, with a slow zoom from a random point. */
