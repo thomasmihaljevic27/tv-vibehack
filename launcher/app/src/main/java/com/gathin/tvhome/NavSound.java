@@ -7,7 +7,8 @@ import android.media.SoundPool;
 import android.os.SystemClock;
 
 /**
- * A soft, airy "boop" when focus moves, like the navigation sound on Sony TVs (res/raw/nav_move.wav is synthesised,
+ * A soft, airy "boop" when focus moves, like the navigation sound on Sony TVs: res/raw/nav_move.wav is a 400 Hz
+ * near-pure sine with a slow swell and a short, dark reverb, synthesised to match measurements of that sound (it is
  * not sampled). On by default; switched in Home screen options. SoundPool keeps it low-latency and cheap.
  */
 final class NavSound {
