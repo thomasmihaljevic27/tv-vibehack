@@ -51,6 +51,9 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
         /** Long-press OK on a tile. */
         void onTileMenu(int position, View card);
+
+        /** An app is being opened from its tile. */
+        void onAppLaunch();
     }
 
     static final class Entry {
@@ -323,6 +326,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
         try {
             ctx.startActivity(i);
+            if (listener != null) listener.onAppLaunch();
         } catch (Exception ex) {
             Toast.makeText(ctx, ctx.getString(R.string.cant_open, e.label), Toast.LENGTH_SHORT).show();
         }

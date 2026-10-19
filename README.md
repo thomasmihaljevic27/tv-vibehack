@@ -85,8 +85,9 @@ A home screen that is yours again:
 - **Rearrange, hide and uninstall apps on the TV**: hold OK on a tile to move it (the others slide
   out of the way), hide it or uninstall it. Hidden apps come back from **Home screen options** in
   the top menu, which also switches the background art and the navigation sound on and off.
-- **A soft navigation sound**: a low, airy "boop" on every move, modelled on Sony's TV menus
-  (synthesised, not sampled). On by default.
+- **Soft UI sounds** modelled on Sony's TV menus (synthesised, not sampled): an airy "boop" on
+  every move, a short blip when you open an app, and a low bloom when you come back home. On by
+  default.
 - **Optional background art**: public-domain landscape paintings behind the dock, changing every
   ten minutes. Only works the museum tags as landscapes or seascapes, with nothing religious,
   military, nude or figure-centred. Off by default, since it's the only feature that goes online.

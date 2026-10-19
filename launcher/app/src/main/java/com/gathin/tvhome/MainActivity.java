@@ -93,6 +93,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     /** Refreshes the network pill when the connection changes: at boot Wi-Fi often connects after Home is shown. */
+    /** The app list must be read again on the next return home (apps installed, removed, updated, enabled). */
+    private boolean appsDirty = true;
+    /** Paused for another app or screen since the last resume: coming back plays the home sound. */
+    private boolean returning;
+    private final BroadcastReceiver packageChanges = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            appsDirty = true;
+        }
+    };
+
     /** Waking from standby counts as a fresh look at the home screen: credit the painting again. */
     private final BroadcastReceiver screenOn = new BroadcastReceiver() {
         @Override
@@ -123,6 +134,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         root = findViewById(R.id.root);
         glass = findViewById(R.id.glass);
         ambient = findViewById(R.id.ambient);
+        // A full-screen gradient: render it once into a texture; colour changes re-render, fades don't.
+        ambient.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         heroName = findViewById(R.id.heroName);
         ambientGlow = new GradientDrawable();
         ambientGlow.setGradientType(GradientDrawable.RADIAL_GRADIENT);
@@ -134,6 +147,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sound = new NavSound(this);
         art = new ArtSlideshow(this, findViewById(R.id.artLayer), findViewById(R.id.artA), findViewById(R.id.artB),
                 findViewById(R.id.artScrim), findViewById(R.id.artCaption));
+        // Under an opaque painting the glow is invisible but would still be drawn every frame.
+        art.setOnCover(covered -> ambient.setVisibility(covered ? View.INVISIBLE : View.VISIBLE));
+        View divider = findViewById(R.id.dateDivider);
+        TextView date = findViewById(R.id.date);
+        date.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> alignDivider(divider, date));
 
         grid = findViewById(R.id.grid);
         grid.setLayoutManager(new GridLayoutManager(this, COLUMNS));
@@ -216,6 +234,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         if (cm != null) cm.registerDefaultNetworkCallback(networkCallback);
         registerReceiver(screenOn, new IntentFilter(Intent.ACTION_SCREEN_ON));
+        IntentFilter packages = new IntentFilter();
+        packages.addAction(Intent.ACTION_PACKAGE_ADDED);
+        packages.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        packages.addAction(Intent.ACTION_PACKAGE_CHANGED);
+        packages.addAction(Intent.ACTION_PACKAGE_REPLACED);
+        packages.addDataScheme("package");
+        registerReceiver(packageChanges, packages);
     }
 
     /** The home screen while it's in front, for GearKeyService; null otherwise. Main thread only. */
@@ -230,6 +255,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         super.onResume();
         front = new WeakReference<>(this);
         sound.quiet(800);   // focusTile() below puts focus back by itself; that's not a move
+        if (returning) sound.home();   // back from an app or a screen, not the first start
+        returning = false;
         glassShown = false;
         glass.setAlpha(0f);
         heroShown = false;
@@ -238,7 +265,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Read these before reload(): rebinding can move focus to the first tile and overwrite them.
         final String returnKey = lastFocusedKey;
         final int returnSlot = lastFocused;
-        adapter.reload();
+        // Loading every app's banner is the slowest part of coming back home, so only do it when apps were
+        // installed, removed or updated (packageChanges) or on the first start.
+        if (appsDirty) {
+            appsDirty = false;
+            adapter.reload();
+        }
         grid.scheduleLayoutAnimation();
         updateWifiLabel();
 
@@ -253,6 +285,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onPause() {
         super.onPause();
+        returning = true;
         if (front.get() == this) front = new WeakReference<>(null);
         if (movingPos >= 0) endMove();
         art.stop();
@@ -264,6 +297,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         art.shutdown();
         sound.release();
         unregisterReceiver(screenOn);
+        unregisterReceiver(packageChanges);
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         if (cm != null) cm.unregisterNetworkCallback(networkCallback);
     }
@@ -403,6 +437,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 ambient.animate().alpha(1f).setDuration(600).withEndAction(null).start();
             }).start();
         }
+    }
+
+    /** Centres the divider between clock and date on the date's capital letters, whatever the font's metrics. */
+    private static void alignDivider(View divider, TextView date) {
+        Rect caps = new Rect();
+        date.getPaint().getTextBounds("H", 0, 1, caps);   // caps.top: cap height above the baseline (negative)
+        float capsCentre = date.getTop() + date.getBaseline() + caps.top / 2f;
+        divider.setTranslationY(capsCentre - (divider.getTop() + divider.getHeight() / 2f));
     }
 
     private void hideGlass() {
@@ -684,10 +726,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         wifiLabel = text;
     }
 
+    @Override
+    public void onAppLaunch() {
+        sound.select();
+    }
+
     private void open(Intent i) {
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         try {
             startActivity(i);
+            sound.select();
         } catch (ActivityNotFoundException e) {
             Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
         }

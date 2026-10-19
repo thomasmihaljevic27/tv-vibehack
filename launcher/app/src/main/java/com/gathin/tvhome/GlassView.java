@@ -4,7 +4,6 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.util.AttributeSet;
@@ -21,7 +20,6 @@ public class GlassView extends View {
     private final Paint rim = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF rect = new RectF();
-    private final Path clip = new Path();
     private final float density;
     private float radius;
 
@@ -68,14 +66,9 @@ public class GlassView extends View {
         }
 
         canvas.drawRoundRect(rect, radius, radius, fill);
-
-        clip.reset();
-        clip.addRoundRect(rect, radius, radius, Path.Direction.CW);
-        canvas.save();
-        canvas.clipPath(clip);
-        canvas.drawRect(rect.left, rect.top, rect.right, rect.top + rect.height() * 0.45f, specular);
-        canvas.restore();
-
+        // The specular's gradient is already transparent below 45% of the height, so the same rounded rect
+        // gives the top highlight without a path clip (a stencil pass on every frame the glass moves).
+        canvas.drawRoundRect(rect, radius, radius, specular);
         canvas.drawRoundRect(rect, radius, radius, rim);
     }
 }

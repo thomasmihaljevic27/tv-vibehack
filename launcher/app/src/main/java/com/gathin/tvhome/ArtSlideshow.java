@@ -108,6 +108,8 @@ final class ArtSlideshow {
      * (requestCaption), not when coming back from an app, so the credit doesn't nag on every return.
      */
     private boolean captionPending;
+    /** Told when the art fully covers the screen (true) and when it starts to go (false). */
+    private java.util.function.Consumer<Boolean> onCover;
     /** accentOf() the painting on display. */
     private int accent;
     private final Runnable hideCaption = this::fadeCaptionOut;
@@ -143,6 +145,10 @@ final class ArtSlideshow {
         this.caption = caption;
         this.prefs = ctx.getSharedPreferences("layout", Context.MODE_PRIVATE);
         this.dir = new File(ctx.getCacheDir(), "art-v3");
+        // One cached texture for the paintings, scrim and title: the screen draws a single full-screen layer
+        // per frame instead of four, and the fades only change that layer's alpha. It is re-rendered when a
+        // painting changes or drifts (once a second), not on every focus move in front of it.
+        layer.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         scrim.setBackground(scrim());
         scrim.setOutlineProvider(null);   // it sits above the images in Z; no shadow
         scrim.setTranslationZ(2f);
@@ -174,6 +180,7 @@ final class ArtSlideshow {
     /** Hide the art (focus left the dock, or the launcher was paused). The current image and its time left are kept. */
     void stop() {
         running = false;
+        if (onCover != null) onCover.accept(false);
         if (dueAt > 0) remainingMs = Math.max(0, dueAt - SystemClock.uptimeMillis());
         dueAt = 0;
         main.removeCallbacks(next);
@@ -202,6 +209,11 @@ final class ArtSlideshow {
         caption.animate().alpha(0f).setDuration(800).start();
     }
 
+    /** Lets the screen skip drawing what the opaque art hides (MainActivity's glow). */
+    void setOnCover(java.util.function.Consumer<Boolean> listener) {
+        onCover = listener;
+    }
+
     /** The TV woke from standby: credit the painting once more, the next time it's shown. */
     void requestCaption() {
         captionPending = true;
@@ -209,7 +221,9 @@ final class ArtSlideshow {
 
     private void reveal() {
         layer.setVisibility(View.VISIBLE);
-        layer.animate().alpha(1f).setDuration(700).withEndAction(null).start();
+        layer.animate().alpha(1f).setDuration(700).withEndAction(() -> {
+            if (running && onCover != null) onCover.accept(true);
+        }).start();
         if (captionPending && caption.length() > 0) {
             captionPending = false;
             main.removeCallbacks(hideCaption);
