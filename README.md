@@ -70,11 +70,12 @@ first time; with this repo as context, people report about fifteen minutes.
 
 A home screen that is yours again:
 
-- **Pitch-black background** and a dock of your four favourite apps at the bottom, in a lighter
+- **Pitch-black background** and a dock of your five favourite apps at the bottom, in a lighter
   rounded band, exactly where Apple TV puts it.
 - **A top shelf** showing the focused app's name in large type, with an ambient glow in a colour
   taken from the app's own artwork.
-- **The rest of your apps in a grid** that slides up when you press Down.
+- **The rest of your apps in a grid**, five across, that slides up when you press Down. With
+  background art on, the grid sits on a glow in a colour taken from the painting.
 - **One floating glass highlight** that springs from tile to tile instead of each tile drawing its
   own border. The focused tile lifts slightly and shows its name.
 - **One frosted button in the top corner** that drops down Inputs (HDMI ports, AV and Live TV),
@@ -83,7 +84,9 @@ A home screen that is yours again:
   [Google Sans Flex](https://fonts.google.com/specimen/Google+Sans+Flex).
 - **Rearrange, hide and uninstall apps on the TV**: hold OK on a tile to move it (the others slide
   out of the way), hide it or uninstall it. Hidden apps come back from **Home screen options** in
-  the top menu, which also switches the background art on and off.
+  the top menu, which also switches the background art and the navigation sound on and off.
+- **A soft navigation sound**: a low, airy "boop" on every move, modelled on Sony's TV menus
+  (synthesised, not sampled). On by default.
 - **Optional background art**: public-domain landscape paintings behind the dock, changing every
   ten minutes. Only works the museum tags as landscapes or seascapes, with nothing religious,
   military, nude or figure-centred. Off by default, since it's the only feature that goes online.
@@ -218,6 +221,11 @@ Fire OS needs the second one because it differs in four ways:
   where HOME can't be caught, so `HomeGuard` leaves it open and **Back** brings you home.
 - **No gear button, no Clock screensaver.** Fire OS does run a third-party screensaver, but it
   force-stops the screensaver's app when it ends, which would also stop `HomeGuard`.
+
+Everything else is the same launcher as on Android TV: five columns, the tile menu (Move, Hide,
+Uninstall), Home screen options, the optional background art with its glow behind the grid, and
+the navigation sound. The fire dock lists four apps in `config.xml`; the fifth slot takes the next
+app in the saved order, or add a fifth `dock_apps` entry.
 
 Configure it in [`launcher/app/src/fire/res/values/config.xml`](launcher/app/src/fire/res/values/config.xml),
 then build and install. The script backs up packages and settings to `backup\fire-tv` first and never
