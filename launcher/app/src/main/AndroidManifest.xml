@@ -62,5 +62,18 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </service>
+
+        <!-- Ambient-mode screensaver with the background art (ArtDream): `settings put secure
+             screensaver_components com.gathin.tvhome/.ArtDream`, or pick "Art" in Settings. -->
+        <service
+            android:name=".ArtDream"
+            android:label="@string/dream_art_name"
+            android:exported="true"
+            android:permission="android.permission.BIND_DREAM_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.dreams.DreamService" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>

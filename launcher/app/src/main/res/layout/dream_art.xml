@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Screensaver (ArtDream): the background art full screen, its title bottom right, a soft clock bottom left.
+     The art views keep ArtSlideshow's ids, as in activity_main.xml. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FF000000">
+
+    <FrameLayout
+        android:id="@+id/artLayer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0"
+        android:visibility="gone"
+        android:importantForAccessibility="noHideDescendants">
+
+        <ImageView
+            android:id="@+id/artA"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:contentDescription="@null" />
+
+        <ImageView
+            android:id="@+id/artB"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:contentDescription="@null" />
+
+        <View
+            android:id="@+id/artScrim"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <TextView
+            android:id="@+id/artCaption"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="56dp"
+            android:layout_marginBottom="44dp"
+            android:maxWidth="420dp"
+            android:gravity="end"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:alpha="0"
+            android:textColor="#BFFFFFFF"
+            android:textSize="13sp"
+            android:fontFamily="@font/google_sans_flex"
+            android:letterSpacing="0.02"
+            android:shadowColor="#E6000000"
+            android:shadowRadius="8"
+            android:shadowDy="1" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:id="@+id/dreamClock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="56dp"
+        android:layout_marginBottom="36dp"
+        android:orientation="vertical">
+
+        <TextClock
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format12Hour="h:mm"
+            android:format24Hour="HH:mm"
+            android:textColor="#E6FFFFFF"
+            android:textSize="56sp"
+            android:fontFamily="@font/google_sans_flex"
+            android:fontVariationSettings="'opsz' 48, 'wght' 300"
+            android:letterSpacing="-0.03"
+            android:includeFontPadding="false"
+            android:shadowColor="#99000000"
+            android:shadowRadius="16"
+            android:shadowDy="2" />
+
+        <TextClock
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="3dp"
+            android:layout_marginTop="2dp"
+            android:format12Hour="@string/date_format"
+            android:format24Hour="@string/date_format"
+            android:textColor="#B3FFFFFF"
+            android:textSize="14sp"
+            android:fontFamily="@font/google_sans_flex"
+            android:fontVariationSettings="'wght' 400"
+            android:letterSpacing="0.14"
+            android:textAllCaps="true"
+            android:shadowColor="#99000000"
+            android:shadowRadius="10"
+            android:shadowDy="1" />
+    </LinearLayout>
+</FrameLayout>

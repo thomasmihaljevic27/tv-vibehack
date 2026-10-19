@@ -20,6 +20,9 @@
         <service
             android:name=".ClockDream"
             tools:node="remove" />
+        <service
+            android:name=".ArtDream"
+            tools:node="remove" />
 
         <!-- Makes HOME open this launcher instead of Amazon's (HomeGuard). -->
         <service

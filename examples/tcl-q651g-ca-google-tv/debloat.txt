@@ -18,8 +18,12 @@
 # Known quirks on this firmware:
 # - Firmware updates come through Google Play Services (com.google.android.gms/.update.SystemUpdateService),
 #   not a TCL package, so no line here blocks them. com.tcl.UpdatePeripheral only updates TCL soundbars.
-# - Disabling dreamx leaves screensaver_components pointing at it. Switch to the AOSP fallback with
-#   tools/tv.py 'settings put secure screensaver_components com.android.dreams.basic/.Colors'
+# - Disabling dreamx (Google TV's ambient mode) leaves screensaver_components pointing at it. Switch to
+#   the launcher's Art screensaver, its ambient-mode replacement (or .ClockDream; the AOSP fallback is
+#   com.android.dreams.basic/.Colors), and optionally a 5-minute idle (the stock value here was 10):
+#   tools/tv.py 'settings put secure screensaver_components com.gathin.tvhome/.ArtDream'
+#   tools/tv.py 'settings put system screen_off_timeout 300000'
+# - The TV rebooted overnight once during testing; setupwraith and every other disable stayed in place.
 # - screencap writes an empty file while Live TV/HDMI is on screen. Press Home first.
 # - Live TV (com.tcl.tv) still opens and plays with com.tcl.ttvs disabled.
 # - The Google TV promo banner is drawn by launcherx itself, so only launcher/ removes it.

@@ -186,17 +186,26 @@ buttons, the ends of the button row don't fall through to tiles, and the last fo
 remembered when you come back, even after the app list changes.
 
 <details>
-<summary><strong>Optional: the Clock screensaver</strong></summary>
+<summary><strong>Optional: the Art and Clock screensavers</strong></summary>
 
-A large thin clock and the date over an ambient glow, in the launcher's style. Every minute the
-clock drifts to a new spot and the glow shifts colour. The system runs it only while the TV is
-idle. Turn it on over ADB, or pick "Clock" in the TV's screensaver settings:
+**Art** is an ambient mode like Google TV's: the background art full screen, a new painting every
+90 seconds with a slow drift, its title for a few seconds, and a soft clock in the corner that
+shifts a little every minute so nothing burns in. Choosing it is its own opt-in to the art, so it
+shows paintings even with Background art off on the home screen; offline it cycles the cached ones.
+
+**Clock** is a large thin clock and the date over an ambient glow, in the launcher's style. Every
+minute the clock drifts to a new spot and the glow shifts colour. No network, no images.
+
+The system runs either only while the TV is idle. Turn one on over ADB, or pick "Art" or "Clock" in
+the TV's screensaver settings:
 
 ```bash
+tools/venv/bin/python -I tools/tv.py 'settings put secure screensaver_components com.gathin.tvhome/.ArtDream; settings put secure screensaver_enabled 1'
 tools/venv/bin/python -I tools/tv.py 'settings put secure screensaver_components com.gathin.tvhome/.ClockDream; settings put secure screensaver_enabled 1'
 ```
 
-It starts after the TV's "screen off" idle time (`settings get system screen_off_timeout`).
+It starts after the TV's "screen off" idle time, in milliseconds: `settings put system
+screen_off_timeout 300000` for five minutes. Neither is in the Fire TV build.
 </details>
 
 ## Fire TV

@@ -51,8 +51,8 @@ final class ArtSlideshow {
     private static final String IMAGE = "https://www.artic.edu/iiif/2/%s/full/1686,/0/default.jpg";
     private static final String USER_AGENT = "tvhome-launcher (tv-vibehack)";
     private static final String PREF = "art_enabled";
-    /** Time each painting stays up, counted only while it's on screen. */
-    private static final long SLIDE_MS = 10L * 60 * 1000;
+    /** Time each painting stays up on the home screen, counted only while it's on screen. */
+    static final long SLIDE_MS = 10L * 60 * 1000;
     /** Retry delay when nothing could be loaded at all (first run offline). */
     private static final long RETRY_MS = 60_000L;
     private static final long FADE_MS = 1_600L;
@@ -65,7 +65,7 @@ final class ArtSlideshow {
      */
     private static final int PAGES = 3;
     private static final int CACHE_FILES = 30;
-    /** End scale of the drift over a whole SLIDE_MS: about 0.06 px of movement per second, below notice. */
+    /** End scale of the drift over a whole slide: on the home screen about 0.06 px a second, below notice. */
     private static final float DRIFT = 1.04f;
     /** The drift is stepped, not animated per frame: a 10-minute animator would redraw the screen nonstop. */
     private static final long DRIFT_STEP_MS = 1_000L;
@@ -96,9 +96,13 @@ final class ArtSlideshow {
     private ImageView front, back;
     private boolean running, loading, hasImage;
     /** Time left on the current painting; kept across stop()/start() so leaving the dock doesn't reset it. */
-    private long remainingMs = SLIDE_MS;
+    private long remainingMs;
     private long dueAt;
-    private float driftProgress;   // 0..1 over SLIDE_MS of on-screen time
+    private float driftProgress;   // 0..1 over slideMs of on-screen time
+    /** How long each painting stays up; shorter for the screensaver (ArtDream). */
+    private final long slideMs;
+    /** Show art whatever the home screen's Background art setting (the screensaver is its own opt-in). */
+    private final boolean always;
     /**
      * Show the credit the next time the art is on screen. Set for a new painting and when the TV wakes
      * (requestCaption), not when coming back from an app, so the credit doesn't nag on every return.
@@ -115,7 +119,7 @@ final class ArtSlideshow {
         @Override
         public void run() {
             if (!running || driftProgress >= 1f) return;
-            driftProgress = Math.min(1f, driftProgress + DRIFT_STEP_MS / (float) SLIDE_MS);
+            driftProgress = Math.min(1f, driftProgress + DRIFT_STEP_MS / (float) slideMs);
             float s = 1f + (DRIFT - 1f) * driftProgress;
             front.setScaleX(s);
             front.setScaleY(s);
@@ -124,7 +128,15 @@ final class ArtSlideshow {
     };
 
     ArtSlideshow(Context ctx, View layer, ImageView a, ImageView b, View scrim, TextView caption) {
+        this(ctx, layer, a, b, scrim, caption, SLIDE_MS, false);
+    }
+
+    ArtSlideshow(Context ctx, View layer, ImageView a, ImageView b, View scrim, TextView caption, long slideMs,
+                 boolean always) {
         this.ctx = ctx;
+        this.slideMs = slideMs;
+        this.always = always;
+        this.remainingMs = slideMs;
         this.layer = layer;
         this.front = a;
         this.back = b;
@@ -138,7 +150,7 @@ final class ArtSlideshow {
     }
 
     boolean isEnabled() {
-        return prefs.getBoolean(PREF, ctx.getResources().getBoolean(R.bool.background_art));
+        return always || prefs.getBoolean(PREF, ctx.getResources().getBoolean(R.bool.background_art));
     }
 
     void setEnabled(boolean on) {
@@ -235,7 +247,7 @@ final class ArtSlideshow {
                     accent = color;
                     show(result, shown);
                 }
-                else if (running) schedule(hasImage ? SLIDE_MS : RETRY_MS);
+                else if (running) schedule(hasImage ? slideMs : RETRY_MS);
             });
         });
     }
@@ -316,10 +328,10 @@ final class ArtSlideshow {
         captionPending = true;   // reveal() fades it in for CAPTION_MS
 
         hasImage = true;
-        remainingMs = SLIDE_MS;
+        remainingMs = slideMs;
         if (running) {
             reveal();
-            schedule(SLIDE_MS);
+            schedule(slideMs);
         }
     }
 
