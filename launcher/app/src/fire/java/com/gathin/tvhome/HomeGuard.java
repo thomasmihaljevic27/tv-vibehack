@@ -27,6 +27,7 @@
 package com.gathin.tvhome;
 
 import android.accessibilityservice.AccessibilityService;
+import android.accessibilityservice.AccessibilityServiceInfo;
 import android.app.Activity;
 import android.app.ActivityOptions;
 import android.app.AlarmManager;
@@ -41,6 +42,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
@@ -62,12 +64,20 @@ import android.view.accessibility.AccessibilityEvent;
  * step dumbtv's Fire OS 7 didn't need: Android 11 lets that alarm bring our activity to the front only
  * while this app has a window on screen, so the alarm is set once the overlay has drawn.
  *
+ * The Appstore is a tab of Amazon's home on Fire OS 8, opened through com.amazon.venezia, so Amazon's home
+ * appearing right after the Appstore's window is left on screen. HOME pressed there changes nothing this
+ * service can see, so while the store is open it filters the Back key alone: Back on the store brings our
+ * home back. Any other app, or our home, ends that.
+ *
  * Holding HOME still opens Fire OS's quick menu: that is another window, which this service leaves alone.
  */
 public final class HomeGuard extends AccessibilityService {
     private static final String TAG = "HomeGuard";
     private static final String AMAZON = "com.amazon.tv.launcher";
     private static final String AMAZON_HOME = "com.amazon.tv.launcher.ui.HomeActivity_vNext";
+    private static final String STORE = "com.amazon.venezia";
+    /** The Appstore's entry opens Amazon's home this soon after its own window (about 0.1 s). */
+    private static final long STORE_MS = 2000;
     /** Uncover anyway after this long, in case our home never draws (a cold start takes about 2 s). */
     private static final long COVER_MAX_MS = 4000;
     /** Launch anyway after this long if the overlay's frame never reports back. */
@@ -91,6 +101,9 @@ public final class HomeGuard extends AccessibilityService {
     /** Uptimes of this takeover's steps, for the log line: Amazon's window, launch, our resume. */
     private long seenAt, launchedAt, resumedAt;
     private Application.ActivityLifecycleCallbacks homeWatch;
+    /** Event time of the Appstore's last window; whether the store is open; whether Amazon's home is in front. */
+    private long storeSeenAt = Long.MIN_VALUE / 2;
+    private boolean inStore, onAmazonHome;
 
     static void launchHome(Context c) {
         AlarmManager alarms = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
@@ -151,20 +164,27 @@ public final class HomeGuard extends AccessibilityService {
         if (e.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return;
         CharSequence pkg = e.getPackageName(), cls = e.getClassName();
         if (pkg == null) return;
+        long at = e.getEventTime();
         if (!AMAZON.contentEquals(pkg)) {
             if ("com.android.systemui".contentEquals(pkg) || "android".contentEquals(pkg)) return;
             if (getPackageName().contentEquals(pkg)) return;
+            onAmazonHome = false;
             // Another app took the screen: it wins over a launch still on its way.
             handler.removeCallbacks(launchNow);
             handler.removeCallbacks(retry);
             cancelLaunch(this);
             uncover();
+            // The Appstore's own pages keep the store open; anything else closes it.
+            if (STORE.contentEquals(pkg)) storeSeenAt = at;
+            else leaveStore();
             return;
         }
         // Amazon's settings screens and quick menu live in the same package and stay.
-        if (cls == null || !AMAZON_HOME.contentEquals(cls)) return;
+        onAmazonHome = cls != null && AMAZON_HOME.contentEquals(cls);
+        if (!onAmazonHome) return;
+        if (at - storeSeenAt < STORE_MS) enterStore();
+        if (inStore) return;
         // Events queue up while our home is busy drawing, so judge them by when they were sent.
-        long at = e.getEventTime();
         if (at < homeResumedAt || at - lastLaunch < REPEAT_MS) return;
         lastLaunch = at;
         takeOver();
@@ -182,6 +202,41 @@ public final class HomeGuard extends AccessibilityService {
             cover.getViewTreeObserver().registerFrameCommitCallback(() -> handler.postDelayed(launchNow, SETTLE_MS));
             handler.postDelayed(launchNow, LAUNCH_MAX_MS);
         }
+    }
+
+    /** Back on Amazon's home while the Appstore is open: our home. Other keys pass. */
+    @Override
+    protected boolean onKeyEvent(KeyEvent k) {
+        if (!inStore || !onAmazonHome || k.getKeyCode() != KeyEvent.KEYCODE_BACK) return false;
+        if (k.getAction() == KeyEvent.ACTION_UP) {
+            handler.post(() -> {
+                leaveStore();
+                lastLaunch = SystemClock.uptimeMillis();
+                takeOver();
+            });
+        }
+        return true;
+    }
+
+    private void enterStore() {
+        if (inStore) return;
+        inStore = true;
+        filterKeys(true);
+    }
+
+    private void leaveStore() {
+        if (!inStore) return;
+        inStore = false;
+        filterKeys(false);
+    }
+
+    /** Key events reach onKeyEvent only while the store is open. */
+    private void filterKeys(boolean on) {
+        AccessibilityServiceInfo info = getServiceInfo();
+        if (info == null) return;
+        if (on) info.flags |= AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS;
+        else info.flags &= ~AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS;
+        setServiceInfo(info);
     }
 
     private void launchNow() {
@@ -211,6 +266,7 @@ public final class HomeGuard extends AccessibilityService {
     /** Our home resumed: drop any queued launch, and uncover once it has drawn a frame. */
     private void homeResumed(Activity home) {
         homeResumedAt = resumedAt = SystemClock.uptimeMillis();
+        leaveStore();
         handler.removeCallbacks(launchNow);
         handler.removeCallbacks(retry);
         cancelLaunch(this);

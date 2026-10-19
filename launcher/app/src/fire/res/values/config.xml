@@ -15,12 +15,11 @@
         <item>com.apple.atve.amazon.appletv</item>
     </string-array>
 
-    <!-- Apps never shown as tiles: Amazon's home (HOME opens this launcher instead); the Appstore, which on
-         Fire OS 8 is a tab of Amazon's home that HOME can't be caught in; and system screens that declare a
-         phone launcher entry but aren't apps (profile picker, screensaver settings, System Status Monitor). -->
+    <!-- Apps never shown as tiles: Amazon's home (HOME opens this launcher instead), and system screens that
+         declare a phone launcher entry but aren't apps (profile picker, screensaver settings, System Status
+         Monitor). -->
     <string-array name="hidden_apps">
         <item>com.amazon.tv.launcher</item>
-        <item>com.amazon.venezia</item>
         <item>com.amazon.ftv.profilepicker</item>
         <item>com.amazon.ftv.screensaver</item>
         <item>com.amazon.ssm</item>
@@ -34,6 +33,12 @@
          replaces); this category opens its settings screen. -->
     <string name="settings_category" translatable="false">android.intent.category.LEANBACK_SETTINGS</string>
 
-    <!-- Silk, Amazon Kids and other Amazon apps declare only a phone launcher entry. -->
+    <!-- The Appstore, Silk and other Amazon apps declare only a phone launcher entry. -->
     <bool name="phone_launcher_apps">true</bool>
+
+    <!-- The Appstore has no TV banner; its icon is drawn as one. On Fire OS 8 it is a tab of Amazon's home:
+         HomeGuard leaves that open, and Back returns here (HOME can't be seen there). -->
+    <string-array name="icon_banner_apps">
+        <item>com.amazon.venezia</item>
+    </string-array>
 </resources>

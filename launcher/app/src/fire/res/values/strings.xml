@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="home_guard_name">Home button</string>
-    <string name="home_guard_description">Opens this home screen instead of Amazon\'s when you press Home on the remote. Sees only which app is on screen, never what it shows.</string>
+    <string name="home_guard_description">Opens this home screen instead of Amazon\'s when you press Home on the remote. Sees only which app is on screen, never what it shows, and the Back key while the Appstore is open.</string>
 </resources>

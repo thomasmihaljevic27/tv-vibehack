@@ -213,9 +213,9 @@ Fire OS needs the second one because it differs in four ways:
 - **Settings and inputs.** `Settings.ACTION_SETTINGS` reopens Amazon's home, so the Settings entry
   opens `LEANBACK_SETTINGS` instead. A stick has no HDMI inputs, so the Inputs entry is gone.
 - **Package names.** Prime Video is `com.amazon.firebat`, YouTube `com.amazon.firetv.youtube`. Many
-  Amazon apps (Silk, Amazon Kids) declare only a phone launcher entry; the fire build lists them with
-  their icon. The Appstore is hidden: on Fire OS 8 it is a tab of Amazon's home, where HOME can't
-  be caught.
+  Amazon apps (Silk, the Appstore) declare only a phone launcher entry; the fire build lists them,
+  the Appstore with its icon drawn as a banner. On Fire OS 8 the Appstore is a tab of Amazon's home,
+  where HOME can't be caught, so `HomeGuard` leaves it open and **Back** brings you home.
 - **No gear button, no Clock screensaver.** Fire OS does run a third-party screensaver, but it
   force-stops the screensaver's app when it ends, which would also stop `HomeGuard`.
 

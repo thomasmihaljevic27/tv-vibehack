@@ -512,7 +512,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // A focused tile is drawn scaled up; keep clear of its scaled edges.
         int grow = anchor.getId() == R.id.card ? (int) (anchor.getHeight() * (AppAdapter.FOCUS_SCALE - 1f) / 2f) : 0;
         int below = at[1] + anchor.getHeight() + grow + gap;
-        boolean up = below + h > root.getHeight() - gap;
+        int roomBelow = root.getHeight() - gap - below, roomAbove = at[1] - grow - 2 * gap;
+        boolean up = h > roomBelow && roomAbove > roomBelow;
+        // Taller than the room on that side: the panel scrolls (popup_inputs is a ScrollView).
+        int room = up ? roomAbove : roomBelow;
+        if (h > room) {
+            h = room;
+            popup.setHeight(h);
+        }
         int y = up ? at[1] - grow - gap - h : below;
         // Left-aligned with the anchor, or right-aligned when the anchor sits in the right half (top menu).
         boolean alignEnd = at[0] + anchor.getWidth() / 2 > root.getWidth() / 2;

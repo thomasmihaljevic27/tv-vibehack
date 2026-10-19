@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- Scrolls when a menu (e.g. a long hidden-apps list) is taller than the screen; MainActivity.showMenu caps it. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/panel"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
     android:background="@drawable/glass_panel"
     android:padding="6dp"
+    android:clipToPadding="false"
+    android:scrollbars="none"
+    android:requiresFadingEdge="vertical"
+    android:fadingEdgeLength="28dp"
     android:elevation="12dp">
 
     <LinearLayout
@@ -13,4 +17,4 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical" />
-</LinearLayout>
+</ScrollView>

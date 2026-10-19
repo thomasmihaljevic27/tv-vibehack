@@ -14,4 +14,7 @@
 
     <!-- Also show apps that declare only a phone launcher entry (CATEGORY_LAUNCHER), not a TV one. -->
     <bool name="phone_launcher_apps">false</bool>
+
+    <!-- Apps without a TV banner whose icon is drawn as a full banner tile instead of the small icon tile. -->
+    <string-array name="icon_banner_apps" />
 </resources>

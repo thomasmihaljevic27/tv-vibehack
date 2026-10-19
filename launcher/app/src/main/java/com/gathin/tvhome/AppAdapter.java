@@ -13,6 +13,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.Rect;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.provider.Settings;
@@ -80,6 +81,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     private final Set<String> hidden;
     /** Also list apps with only a phone launcher entry (res/values/device.xml, phone_launcher_apps). */
     private final boolean phoneLauncherApps;
+    /** Apps whose icon becomes a banner (res/values/device.xml, icon_banner_apps). */
+    private final Set<String> iconBanners;
     /** Hidden from the tile menu on the TV (packages), and the tile order set there (keys, dock first). */
     private final SharedPreferences prefs;
     private final Set<String> userHidden;
@@ -94,6 +97,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         this.favourites = Arrays.asList(ctx.getResources().getStringArray(R.array.dock_apps));
         this.hidden = new HashSet<>(Arrays.asList(ctx.getResources().getStringArray(R.array.hidden_apps)));
         this.phoneLauncherApps = ctx.getResources().getBoolean(R.bool.phone_launcher_apps);
+        this.iconBanners = new HashSet<>(Arrays.asList(ctx.getResources().getStringArray(R.array.icon_banner_apps)));
         this.prefs = ctx.getSharedPreferences("layout", Context.MODE_PRIVATE);
         this.userHidden = new HashSet<>(prefs.getStringSet("hidden", Collections.emptySet()));
         String order = prefs.getString("order", "");
@@ -117,6 +121,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             Drawable banner = ri.activityInfo.loadBanner(pm);
             if (banner == null) banner = ri.activityInfo.applicationInfo.loadBanner(pm);
             Drawable icon = ri.loadIcon(pm);
+            if (banner == null && icon != null && iconBanners.contains(pkg)) banner = iconBanner(icon);
             String label = String.valueOf(ri.loadLabel(pm));
             Entry e = new Entry(label, new ComponentName(pkg, ri.activityInfo.name), banner, icon);
             (userHidden.contains(pkg) ? hiddenItems : fresh).add(e);
@@ -141,7 +146,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     }
 
     /**
-     * The TV apps plus apps that declare only a phone launcher entry (on Fire TV: Silk, Amazon Kids), one
+     * The TV apps plus apps that declare only a phone launcher entry (on Fire TV: the Appstore, Silk), one
      * activity per app. They rarely have a banner, so they get the icon tile.
      */
     private static List<ResolveInfo> withPhoneLauncherApps(PackageManager pm, List<ResolveInfo> tv) {
@@ -155,6 +160,23 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             if (ri.activityInfo != null && seen.add(ri.activityInfo.packageName)) all.add(ri);
         }
         return all;
+    }
+
+    /** A 16:9 banner from an app icon: the icon centred on its own edge colour, like a flat TV banner. */
+    private Drawable iconBanner(Drawable icon) {
+        int w = 320, h = 180, size = 132;
+        Drawable d = icon.getConstantState() != null ? icon.getConstantState().newDrawable().mutate() : icon;
+        Bitmap probe = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        d.setBounds(0, 0, size, size);
+        d.draw(new Canvas(probe));
+        int edge = probe.getPixel(size / 16, size / 2);
+        probe.recycle();
+        Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(bmp);
+        c.drawColor(Color.alpha(edge) < 128 ? 0xFF1C1C1E : edge);
+        d.setBounds((w - size) / 2, (h - size) / 2, (w + size) / 2, (h + size) / 2);
+        d.draw(c);
+        return new BitmapDrawable(ctx.getResources(), bmp);
     }
 
     private int orderIndex(Entry e) {
