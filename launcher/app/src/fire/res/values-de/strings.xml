@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_guard_name">Home-Taste</string>
+    <string name="home_guard_description">Öffnet diesen Startbildschirm statt dem von Amazon, wenn Sie die Home-Taste der Fernbedienung drücken. Sieht nur, welche App angezeigt wird, nie deren Inhalt.</string>
+</resources>

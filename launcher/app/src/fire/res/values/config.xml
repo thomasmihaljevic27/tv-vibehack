@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Fire TV launcher configuration (fire flavour). Values here replace those in src/main/res/values/
+  config.xml and device.xml; anything not listed (background art, columns) is shared with the TV build.
+  Edit this file, then run launcher/install-fire.ps1. Package names: tools/tv.py 'pm list packages'.
+  Fire OS names differ from Google TV: Prime Video is com.amazon.firebat, YouTube com.amazon.firetv.youtube.
+-->
+<resources>
+
+    <!-- Apps pinned to the dock row at the bottom, in this order. Missing apps are skipped. -->
+    <string-array name="dock_apps">
+        <item>com.netflix.ninja</item>
+        <item>com.amazon.firebat</item>
+        <item>com.disney.disneyplus</item>
+        <item>com.apple.atve.amazon.appletv</item>
+    </string-array>
+
+    <!-- Apps never shown as tiles: Amazon's home (HOME opens this launcher instead); the Appstore, which on
+         Fire OS 8 is a tab of Amazon's home that HOME can't be caught in; and system screens that declare a
+         phone launcher entry but aren't apps (profile picker, screensaver settings, System Status Monitor). -->
+    <string-array name="hidden_apps">
+        <item>com.amazon.tv.launcher</item>
+        <item>com.amazon.venezia</item>
+        <item>com.amazon.ftv.profilepicker</item>
+        <item>com.amazon.ftv.screensaver</item>
+        <item>com.amazon.ssm</item>
+    </string-array>
+
+    <!-- A stick has no tuner and no HDMI inputs: no Live TV, no Inputs entry in the top menu. -->
+    <string name="live_tv_package" translatable="false"></string>
+    <bool name="inputs_menu">false</bool>
+
+    <!-- Fire OS answers Settings.ACTION_SETTINGS by bringing back Amazon's home (which HomeGuard then
+         replaces); this category opens its settings screen. -->
+    <string name="settings_category" translatable="false">android.intent.category.LEANBACK_SETTINGS</string>
+
+    <!-- Silk, Amazon Kids and other Amazon apps declare only a phone launcher entry. -->
+    <bool name="phone_launcher_apps">true</bool>
+</resources>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fire TV additions, merged over src/main/AndroidManifest.xml. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application>
+
+        <!-- Resume as soon as HomeGuard launches it, without waiting for Amazon's home to finish pausing. -->
+        <activity
+            android:name=".MainActivity"
+            android:resumeWhilePausing="true" />
+
+        <!-- The Fire TV remote has no gear button. -->
+        <service
+            android:name=".GearKeyService"
+            tools:node="remove" />
+
+        <!-- Fire OS runs a third-party screensaver but force-stops its app when it ends, which here would take
+             HomeGuard down with it until the launcher is opened by hand. -->
+        <service
+            android:name=".ClockDream"
+            tools:node="remove" />
+
+        <!-- Makes HOME open this launcher instead of Amazon's (HomeGuard). -->
+        <service
+            android:name=".HomeGuard"
+            android:label="@string/home_guard_name"
+            android:exported="true"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/home_guard" />
+        </service>
+    </application>
+</manifest>

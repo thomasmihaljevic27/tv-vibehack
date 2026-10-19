@@ -762,22 +762,34 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         else showTopMenu();
     }
 
-    /** The menu under the top-right button: Inputs (opens the inputs list), Wi-Fi with the network name, Settings. */
+    /**
+     * The menu under the top-right button: Inputs (opens the inputs list; not on devices without inputs,
+     * res/values/device.xml), Wi-Fi with the network name, Settings.
+     */
     private void showTopMenu() {
         updateWifiLabel();
         LinearLayout rows = newMenu();
         PopupWindow popup = popupFor(rows);
         topMenu = popup;
-        addInputRow(rows, popup, R.drawable.ic_input, getString(R.string.inputs), -1,
-                () -> btnMenu.post(this::showInputs));
+        if (getResources().getBoolean(R.bool.inputs_menu)) {
+            addInputRow(rows, popup, R.drawable.ic_input, getString(R.string.inputs), -1,
+                    () -> btnMenu.post(this::showInputs));
+        }
         addInputRow(rows, popup, R.drawable.ic_wifi, getString(R.string.wifi), -1,
                 () -> open(new Intent(Settings.ACTION_WIFI_SETTINGS)));
         TextView network = rows.getChildAt(rows.getChildCount() - 1).findViewById(R.id.status);
         network.setText(wifiLabel);
         network.setVisibility(View.VISIBLE);
         addInputRow(rows, popup, R.drawable.ic_settings, getString(R.string.settings), -1,
-                () -> open(new Intent(Settings.ACTION_SETTINGS)));
+                () -> open(settingsIntent()));
         showMenu(popup, rows, btnMenu);
+    }
+
+    /** The device's settings screen: Settings.ACTION_SETTINGS, unless res/values/device.xml names a category. */
+    private Intent settingsIntent() {
+        String category = getString(R.string.settings_category).trim();
+        return category.isEmpty() ? new Intent(Settings.ACTION_SETTINGS)
+                : new Intent(Intent.ACTION_MAIN).addCategory(category);
     }
 
     private void addSeparator(LinearLayout rows) {

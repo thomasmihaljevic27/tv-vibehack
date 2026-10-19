@@ -22,6 +22,7 @@ prompt that did it is in this repo so you can do the same with yours.
 - [Supported TVs](#supported-tvs)
 - [Doing it by hand](#doing-it-by-hand)
 - [The launcher](#the-launcher)
+- [Fire TV](#fire-tv)
 - [Troubleshooting](#troubleshooting)
 - [Questions people ask](#questions-people-ask)
 - [Contributing](#contributing)
@@ -94,8 +95,8 @@ phoning home, no apps you never asked for.
 Anything running **Android TV** or **Google TV**: Xiaomi and Redmi, TCL, Hisense, Sony, OnePlus,
 Realme, Nvidia Shield and most others.
 
-Not supported: Samsung (Tizen), LG (webOS) and Amazon Fire TV. They run different systems or
-won't let a third-party launcher take over Home.
+Amazon Fire TV works too, with its own build of the launcher: see [Fire TV](#fire-tv).
+Not supported: Samsung (Tizen) and LG (webOS), which run different systems.
 
 Lists that people have tested and contributed live in [`examples/`](examples/):
 
@@ -172,7 +173,7 @@ sdkmanager "platforms;android-34" "build-tools;34.0.0"
 ```
 
 Without Homebrew, the script also finds a JDK 17 known to `/usr/libexec/java_home` and an SDK in
-`~/Library/Android/sdk`, Android Studio's default. A release build (`./gradlew assembleRelease`)
+`~/Library/Android/sdk`, Android Studio's default. A release build (`./gradlew assembleTvRelease`)
 is smaller and faster on 1 GB sets; sign it yourself before installing.
 
 **Navigation** is deliberate: Up and Down move exactly one row, Up from the dock goes to the top
@@ -192,6 +193,43 @@ tools/venv/bin/python -I tools/tv.py 'settings put secure screensaver_components
 
 It starts after the TV's "screen off" idle time (`settings get system screen_off_timeout`).
 </details>
+
+## Fire TV
+
+Tested on a Fire TV Stick 4K Plus, Fire OS 8.1.7.4 (Android 11). The launcher has two product
+flavours: `tv` (everything above, built by `build-and-install`) and `fire` (`launcher/app/src/fire`).
+Fire OS needs the second one because it differs in four ways:
+
+- **HOME can't be reassigned.** Fire OS ignores `set-home-activity`, Amazon's launcher
+  (`com.amazon.tv.launcher`) must stay enabled, and the HOME key never reaches an accessibility key
+  filter. The fire build adds `HomeGuard`, an accessibility service adapted from
+  [dumbtv](https://github.com/humblemuzzu/dumbtv) (MIT). It watches only which window comes to the
+  front, reads no screen content, and replaces Amazon's home with this one through an AlarmManager
+  launch (which skips Android's 5 s app-switch delay) behind a black cover. On Android 11 that launch
+  is only allowed once the cover is on screen. You see 0.5 to 2 s of black, never Amazon's home.
+  Holding HOME still opens Fire's quick menu.
+- **Settings and inputs.** `Settings.ACTION_SETTINGS` reopens Amazon's home, so the Settings entry
+  opens `LEANBACK_SETTINGS` instead. A stick has no HDMI inputs, so the Inputs entry is gone.
+- **Package names.** Prime Video is `com.amazon.firebat`, YouTube `com.amazon.firetv.youtube`. Many
+  Amazon apps (Silk, Amazon Kids) declare only a phone launcher entry; the fire build lists them with
+  their icon. The Appstore is hidden: on Fire OS 8 it is a tab of Amazon's home, where HOME can't
+  be caught.
+- **No gear button, no Clock screensaver.** Fire OS does run a third-party screensaver, but it
+  force-stops the screensaver's app when it ends, which would also stop `HomeGuard`.
+
+Configure it in [`launcher/app/src/fire/res/values/config.xml`](launcher/app/src/fire/res/values/config.xml),
+then build and install. The script backs up packages and settings to `backup\fire-tv` first and never
+touches Amazon's launcher. `restore-fire.ps1` undoes everything (`-KeepApp` leaves the launcher installed).
+
+```powershell
+powershell -ExecutionPolicy Bypass -File launcher\install-fire.ps1 -TvHost 192.168.1.60
+powershell -ExecutionPolicy Bypass -File launcher\restore-fire.ps1 -TvHost 192.168.1.60
+```
+
+If HOME ever lands on Amazon's home again, check that `HomeGuard` is still enabled
+(`settings get secure enabled_accessibility_services`) and that
+`settings get global alarm_manager_constants` still says `min_futurity=0`, then run the install
+again.
 
 ## Troubleshooting
 

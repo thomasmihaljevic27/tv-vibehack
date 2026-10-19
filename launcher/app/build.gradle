@@ -14,6 +14,19 @@ android {
         versionName '2.0'
     }
 
+    // One launcher, two kinds of device. "tv" is Android TV / Google TV (the TCL and the other sets in
+    // examples/), built by build-and-install. "fire" is Fire TV, built by install-fire.ps1: src/fire adds
+    // the HOME takeover (HomeGuard), its own dock and top menu, and leaves out GearKeyService.
+    flavorDimensions = ['device']
+    productFlavors {
+        tv {
+            dimension 'device'
+        }
+        fire {
+            dimension 'device'
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false

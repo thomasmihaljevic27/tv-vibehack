@@ -77,6 +77,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     private final List<String> favourites;
     /** Never shown as tiles (res/values/config.xml, hidden_apps). */
     private final Set<String> hidden;
+    /** Also list apps with only a phone launcher entry (res/values/device.xml, phone_launcher_apps). */
+    private final boolean phoneLauncherApps;
     /** Hidden from the tile menu on the TV (packages), and the tile order set there (keys, dock first). */
     private final SharedPreferences prefs;
     private final Set<String> userHidden;
@@ -90,6 +92,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         this.dockSize = dockSize;
         this.favourites = Arrays.asList(ctx.getResources().getStringArray(R.array.dock_apps));
         this.hidden = new HashSet<>(Arrays.asList(ctx.getResources().getStringArray(R.array.hidden_apps)));
+        this.phoneLauncherApps = ctx.getResources().getBoolean(R.bool.phone_launcher_apps);
         this.prefs = ctx.getSharedPreferences("layout", Context.MODE_PRIVATE);
         this.userHidden = new HashSet<>(prefs.getStringSet("hidden", Collections.emptySet()));
         String order = prefs.getString("order", "");
@@ -103,6 +106,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         PackageManager pm = ctx.getPackageManager();
         Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         List<ResolveInfo> found = pm.queryIntentActivities(probe, 0);
+        if (phoneLauncherApps) found = withPhoneLauncherApps(pm, found);
         List<Entry> fresh = new ArrayList<>();
         hiddenItems.clear();
         for (ResolveInfo ri : found) {
@@ -133,6 +137,23 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         items.clear();
         items.addAll(fresh);
         notifyDataSetChanged();
+    }
+
+    /**
+     * The TV apps plus apps that declare only a phone launcher entry (on Fire TV: Silk, Amazon Kids), one
+     * activity per app. They rarely have a banner, so they get the icon tile.
+     */
+    private static List<ResolveInfo> withPhoneLauncherApps(PackageManager pm, List<ResolveInfo> tv) {
+        List<ResolveInfo> all = new ArrayList<>(tv);
+        Set<String> seen = new HashSet<>();
+        for (ResolveInfo ri : tv) {
+            if (ri.activityInfo != null) seen.add(ri.activityInfo.packageName);
+        }
+        Intent phone = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
+        for (ResolveInfo ri : pm.queryIntentActivities(phone, 0)) {
+            if (ri.activityInfo != null && seen.add(ri.activityInfo.packageName)) all.add(ri);
+        }
+        return all;
     }
 
     private int orderIndex(Entry e) {

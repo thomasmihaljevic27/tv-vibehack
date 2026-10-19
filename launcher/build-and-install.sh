@@ -8,11 +8,11 @@ export JAVA_HOME="${JAVA_HOME:-$(/usr/libexec/java_home -v 17 2>/dev/null || ech
 export ANDROID_HOME="${ANDROID_HOME:-$([ -d ~/Library/Android/sdk ] && echo ~/Library/Android/sdk || echo /opt/homebrew/share/android-commandlinetools)}"
 export PATH="$JAVA_HOME/bin:$PATH"
 [ -f local.properties ] || echo "sdk.dir=$ANDROID_HOME" > local.properties
-./gradlew assembleDebug -q --console=plain
+./gradlew assembleTvDebug -q --console=plain
 PY=../tools/venv/bin/python
 [ -x "$PY" ] || PY=../tools/venv/Scripts/python.exe
 export MSYS_NO_PATHCONV=1
-APK=app/build/outputs/apk/debug/app-debug.apk
+APK=app/build/outputs/apk/tv/debug/app-tv-debug.apk
 # Keep the remote's gear button working without the stock launcher (GearKeyService): add it to the
 # enabled accessibility services, keeping any already on. TCL firmware also refuses to start the
 # service without its APP_AUTO_START app-op; elsewhere that op doesn't exist and the line is a no-op.

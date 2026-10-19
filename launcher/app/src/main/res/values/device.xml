@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  What differs by kind of device rather than by taste (that is config.xml). These defaults are the
+  Android TV / Google TV launcher as it always was; the fire flavour overrides them in
+  src/fire/res/values/config.xml.
+-->
+<resources>
+
+    <!-- Inputs entry (HDMI ports, AV, Live TV) in the top menu. -->
+    <bool name="inputs_menu">true</bool>
+
+    <!-- Intent category that opens the device's settings screen. Empty: Settings.ACTION_SETTINGS. -->
+    <string name="settings_category" translatable="false"></string>
+
+    <!-- Also show apps that declare only a phone launcher entry (CATEGORY_LAUNCHER), not a TV one. -->
+    <bool name="phone_launcher_apps">false</bool>
+</resources>
