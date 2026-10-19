@@ -58,7 +58,11 @@ final class ArtSlideshow {
     /** How long the painting's title and artist stay up after it appears. */
     private static final long CAPTION_MS = 10_000L;
     private static final long LIST_MAX_AGE_MS = 24L * 60 * 60 * 1000;
-    private static final int PAGES = 10;            // pick one of the first 1000 results per day
+    /**
+     * Result pages fetched per day and merged. Pure-scenery works sort to the top of a "landscape" search:
+     * on pages 1-3 about 70 survive parse(), from page 6 on none do, so one random page of ten was often empty.
+     */
+    private static final int PAGES = 3;
     private static final int CACHE_FILES = 30;
     /** End scale of the drift over a whole SLIDE_MS: about 0.06 px of movement per second, below notice. */
     private static final float DRIFT = 1.04f;
@@ -287,10 +291,17 @@ final class ArtSlideshow {
         boolean fresh = cached.exists() && System.currentTimeMillis() - cached.lastModified() < LIST_MAX_AGE_MS;
         if (!fresh) {
             try {
-                byte[] body = get(SEARCH + (1 + random.nextInt(PAGES)));
-                List<Art> parsed = parse(new String(body, StandardCharsets.UTF_8));
+                // One cache file with every page's works, in the API's own {"data": [...]} shape.
+                JSONArray all = new JSONArray();
+                for (int page = 1; page <= PAGES; page++) {
+                    JSONArray data = new JSONObject(new String(get(SEARCH + page), StandardCharsets.UTF_8))
+                            .getJSONArray("data");
+                    for (int i = 0; i < data.length(); i++) all.put(data.get(i));
+                }
+                String merged = new JSONObject().put("data", all).toString();
+                List<Art> parsed = parse(merged);
                 if (!parsed.isEmpty()) {
-                    write(cached, body);
+                    write(cached, merged.getBytes(StandardCharsets.UTF_8));
                     return parsed;
                 }
             } catch (Exception e) {
