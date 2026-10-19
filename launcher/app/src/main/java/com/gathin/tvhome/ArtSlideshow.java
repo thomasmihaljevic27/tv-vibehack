@@ -37,12 +37,12 @@ import java.util.concurrent.Executors;
 /**
  * Optional background art behind the top shelf: public-domain landscape paintings from the Art Institute of
  * Chicago's open API, cross-faded every 10 minutes with a barely visible drift, in the spirit of Google TV's ambient
- * mode. Off unless switched on (config.xml background_art, or "Background art" in a tile's menu); while off
+ * mode. Off unless switched on (config.xml background_art, or Home Screen Options in the top menu); while off
  * the launcher never touches the network. Images are cached, so it keeps cycling what it has when offline.
  */
 final class ArtSlideshow {
 
-    // Public-domain paintings (artwork_type_id 1) matching "landscape". Brackets are pre-encoded.
+    // Public-domain paintings (artwork_type_id 1) matching "landscape"; parse() keeps pure scenery. Brackets are pre-encoded.
     private static final String SEARCH = "https://api.artic.edu/api/v1/artworks/search?q=landscape"
             + "&query%5Bbool%5D%5Bmust%5D%5B%5D%5Bterm%5D%5Bis_public_domain%5D=true"
             + "&query%5Bbool%5D%5Bmust%5D%5B%5D%5Bterm%5D%5Bartwork_type_id%5D=1"
@@ -123,7 +123,7 @@ final class ArtSlideshow {
         this.back = b;
         this.caption = caption;
         this.prefs = ctx.getSharedPreferences("layout", Context.MODE_PRIVATE);
-        this.dir = new File(ctx.getCacheDir(), "art");
+        this.dir = new File(ctx.getCacheDir(), "art-v3");
         scrim.setBackground(scrim());
         scrim.setOutlineProvider(null);   // it sits above the images in Z; no shadow
         scrim.setTranslationZ(2f);
@@ -282,7 +282,8 @@ final class ArtSlideshow {
     private List<Art> list() throws Exception {
         //noinspection ResultOfMethodCallIgnored
         dir.mkdirs();
-        File cached = new File(dir, "list-v2.json");   // v2: carries the subject tags parse() filters on
+        dropOldCache();
+        File cached = new File(dir, "list.json");
         boolean fresh = cached.exists() && System.currentTimeMillis() - cached.lastModified() < LIST_MAX_AGE_MS;
         if (!fresh) {
             try {
@@ -299,20 +300,49 @@ final class ArtSlideshow {
         return cached.exists() ? parse(new String(read(cached), StandardCharsets.UTF_8)) : new ArrayList<>();
     }
 
-    /** Subjects that don't belong on a living-room screen at idle (matched against the museum's tags). */
-    private static final String[] AVOID = {"nude", "bather", "battle", "war", "death", "dead", "crucifixion",
-            "martyr", "massacre", "violence", "execution", "hunting"};
+    /**
+     * Earlier versions cached paintings that only had a landscape behind the figures (cache/art); they must
+     * not come back when offline.
+     */
+    private void dropOldCache() {
+        File old = new File(dir.getParentFile(), "art");
+        File[] files = old.listFiles();
+        if (files == null) return;
+        for (File f : files) {
+            //noinspection ResultOfMethodCallIgnored
+            f.delete();
+        }
+        //noinspection ResultOfMethodCallIgnored
+        old.delete();
+    }
 
-    private static boolean matchesAny(String tags, String[] words) {
-        for (String w : words) {
-            if (tags.contains("\"" + w) || tags.contains(" " + w)) return true;   // word start, not "warm"→"war"
+    /** Genre tags of pure scenery. A figure painting with scenery behind it is tagged "landscape" instead. */
+    private static final String[] GENRES = {"landscapes", "seascapes", "marine", "cityscapes"};
+
+    /**
+     * Subjects that don't belong on a living-room screen at idle, matched against each word of the title and
+     * the museum's tags (some works carry only "landscapes"): whole words, and words beginning with an entry of five letters or more ("war" is not "warm",
+     * "saint" is "saints").
+     */
+    private static final String[] AVOID = {"nude", "nudes", "bather", "battle", "war", "wars", "military",
+            "soldier", "death", "dead", "crucifixion", "martyr", "massacre", "violence", "execution", "hunting",
+            "religio", "biblical", "christ", "jesus", "virgin", "madonna", "saint", "angel", "mytholog", "god",
+            "gods", "goddess", "portrait", "famil", "child", "infant", "baby", "babies", "cupid", "putto", "putti",
+            "women", "everyday", "capture", "siege", "attack", "wreck", "shipwreck", "burning"};
+
+    private static boolean avoided(String tag) {
+        for (String word : tag.split("[^a-z]+")) {
+            for (String w : AVOID) {
+                if (word.equals(w) || (w.length() >= 5 && word.startsWith(w))) return true;
+            }
         }
         return false;
     }
 
     /**
-     * Keeps wide works (portraits look poor cropped to 16:9) that the museum tags as landscapes or seascapes,
-     * like Google TV's ambient art, minus the subjects in AVOID. Only as good as the museum's tags.
+     * Keeps wide works (portraits look poor cropped to 16:9) whose genre the museum tags as landscape,
+     * seascape or cityscape, like Google TV's ambient art, minus any work with a subject in AVOID. Only as
+     * good as the museum's tags.
      */
     private static List<Art> parse(String json) throws Exception {
         List<Art> out = new ArrayList<>();
@@ -324,11 +354,20 @@ final class ArtSlideshow {
             if (id.isEmpty() || "null".equals(id) || t == null) continue;
             double w = t.optDouble("width", 0), h = t.optDouble("height", 0);
             if (h <= 0 || w / h < 1.3) continue;
-            String tags = (o.optJSONArray("subject_titles") + " " + o.optJSONArray("term_titles")).toLowerCase(Locale.ROOT);
-            boolean scenery = tags.contains("landscape") || tags.contains("seascape") || tags.contains("marine");
-            if (!scenery || matchesAny(tags, AVOID)) continue;
+            List<String> tags = new ArrayList<>();
+            for (String field : new String[]{"subject_titles", "term_titles"}) {
+                JSONArray a = o.optJSONArray(field);
+                for (int k = 0; a != null && k < a.length(); k++) tags.add(a.optString(k).toLowerCase(Locale.ROOT));
+            }
+            boolean scenery = false, avoid = false;
+            for (String tag : tags) {
+                for (String g : GENRES) scenery |= tag.equals(g);
+                avoid |= avoided(tag);
+            }
+            String title = o.optString("title", "");
+            if (!scenery || avoid || avoided(title.toLowerCase(Locale.ROOT))) continue;
             String artist = o.optString("artist_title", "");
-            out.add(new Art(id, o.optString("title", ""), "null".equals(artist) ? "" : artist));
+            out.add(new Art(id, title, "null".equals(artist) ? "" : artist));
         }
         return out;
     }

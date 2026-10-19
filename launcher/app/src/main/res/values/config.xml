@@ -23,7 +23,7 @@
 
     <!-- Background art behind the dock: public-domain landscape paintings fetched from the Art Institute
          of Chicago's open API. Off by default so the launcher stays offline; it can also be switched on
-         and off on the TV from any tile's menu (long-press OK). -->
+         and off on the TV from Home screen options in the top menu. -->
     <bool name="background_art">false</bool>
 
     <!-- Tiles per row in the grid; the dock always has this many slots. -->

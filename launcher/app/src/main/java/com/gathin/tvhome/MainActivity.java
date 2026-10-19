@@ -443,7 +443,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         return false;
     }
 
-    // ---- tile menu: move, hide, background art --------------------------------------------------
+    // ---- tile menu: move, hide, app info, uninstall ---------------------------------------------
 
     @Override
     public void onTileMenu(int position, View card) {
@@ -458,19 +458,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             Toast.makeText(this, getString(R.string.hidden_toast, label), Toast.LENGTH_LONG).show();
             grid.post(() -> focusTile(Math.min(position, adapter.getItemCount() - 1)));
         });
-        int hiddenCount = adapter.hiddenApps().size();
-        if (hiddenCount > 0) {
-            addInputRow(rows, popup, R.drawable.ic_show, getString(R.string.menu_hidden_apps, hiddenCount), -1,
-                    () -> grid.post(() -> showHiddenApps(card)));
-        }
         addSeparator(rows);
-        boolean artOn = art.isEnabled();
-        addInputRow(rows, popup, R.drawable.ic_art, getString(artOn ? R.string.menu_art_on : R.string.menu_art_off), -1, () -> {
-            art.setEnabled(!artOn);
-            if (!artOn && heroShown) art.start();
-        });
         addInputRow(rows, popup, R.drawable.ic_info, getString(R.string.menu_app_info), -1,
                 () -> adapter.openAppInfo(position));
+        if (adapter.canUninstall(position)) {
+            addInputRow(rows, popup, R.drawable.ic_uninstall, getString(R.string.menu_uninstall), -1,
+                    () -> adapter.uninstall(position));
+        }
         showMenu(popup, rows, card);
     }
 
@@ -764,7 +758,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /**
      * The menu under the top-right button: Inputs (opens the inputs list; not on devices without inputs,
-     * res/values/device.xml), Wi-Fi with the network name, Settings.
+     * res/values/device.xml), Wi-Fi with the network name, Home screen options, Settings.
      */
     private void showTopMenu() {
         updateWifiLabel();
@@ -780,8 +774,27 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         TextView network = rows.getChildAt(rows.getChildCount() - 1).findViewById(R.id.status);
         network.setText(wifiLabel);
         network.setVisibility(View.VISIBLE);
+        addInputRow(rows, popup, R.drawable.ic_options, getString(R.string.home_options), -1,
+                () -> btnMenu.post(this::showHomeOptions));
         addInputRow(rows, popup, R.drawable.ic_settings, getString(R.string.settings), -1,
                 () -> open(settingsIntent()));
+        showMenu(popup, rows, btnMenu);
+    }
+
+    /** Home screen options, from the top menu: bring back hidden apps, background art on or off. */
+    private void showHomeOptions() {
+        LinearLayout rows = newMenu();
+        PopupWindow popup = popupFor(rows);
+        int hiddenCount = adapter.hiddenApps().size();
+        addInputRow(rows, popup, R.drawable.ic_show, getString(R.string.menu_hidden_apps, hiddenCount), -1, () -> {
+            if (hiddenCount == 0) Toast.makeText(this, R.string.no_hidden_apps, Toast.LENGTH_SHORT).show();
+            else btnMenu.post(() -> showHiddenApps(btnMenu));
+        });
+        boolean artOn = art.isEnabled();
+        addInputRow(rows, popup, R.drawable.ic_art, getString(artOn ? R.string.menu_art_on : R.string.menu_art_off), -1, () -> {
+            art.setEnabled(!artOn);
+            if (!artOn && heroShown) art.start();
+        });
         showMenu(popup, rows, btnMenu);
     }
 

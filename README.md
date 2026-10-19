@@ -81,10 +81,12 @@ A home screen that is yours again:
   Wi-Fi (showing the network you're on) and Settings.
 - **A large thin clock and the date**, with everything set in
   [Google Sans Flex](https://fonts.google.com/specimen/Google+Sans+Flex).
-- **Rearrange and hide apps on the TV**: hold OK on a tile to move it (the others slide out of the
-  way), hide it, or bring hidden apps back.
+- **Rearrange, hide and uninstall apps on the TV**: hold OK on a tile to move it (the others slide
+  out of the way), hide it or uninstall it. Hidden apps come back from **Home screen options** in
+  the top menu, which also switches the background art on and off.
 - **Optional background art**: public-domain landscape paintings behind the dock, changing every
-  ten minutes. Off by default, since it's the only feature that goes online.
+  ten minutes. Only works the museum tags as landscapes or seascapes, with nothing religious,
+  military, nude or figure-centred. Off by default, since it's the only feature that goes online.
 - **A matching Clock screensaver**, optional, that drifts around the screen so nothing burns in.
 
 And a TV that stops working against you: no sponsored rows, no "Discover" nags, no analytics

@@ -5,6 +5,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
@@ -192,6 +193,28 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     /** Apps hidden from the tile menu, alphabetical. */
     List<Entry> hiddenApps() {
         return hiddenItems;
+    }
+
+    /** Whether the app at a position can be uninstalled (not part of the system image). */
+    boolean canUninstall(int position) {
+        if (position < 0 || position >= items.size()) return false;
+        try {
+            ApplicationInfo ai = ctx.getPackageManager().getApplicationInfo(items.get(position).pkg, 0);
+            return (ai.flags & ApplicationInfo.FLAG_SYSTEM) == 0;
+        } catch (PackageManager.NameNotFoundException e) {
+            return false;
+        }
+    }
+
+    /** Asks the system to uninstall the app at a position; it shows its own confirmation. */
+    void uninstall(int position) {
+        if (position < 0 || position >= items.size()) return;
+        Intent i = new Intent(Intent.ACTION_DELETE, Uri.parse("package:" + items.get(position).pkg));
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            ctx.startActivity(i);
+        } catch (ActivityNotFoundException ignored) {
+        }
     }
 
     void openAppInfo(int position) {

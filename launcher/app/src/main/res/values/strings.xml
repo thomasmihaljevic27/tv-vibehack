@@ -25,7 +25,10 @@
     <string name="menu_art_on">Background art: On</string>
     <string name="menu_art_off">Background art: Off</string>
     <string name="menu_app_info">App info</string>
+    <string name="menu_uninstall">Uninstall</string>
+    <string name="home_options">Home screen options</string>
+    <string name="no_hidden_apps">No hidden apps</string>
     <string name="move_hint">Use the arrows to move %1$s, then press OK</string>
-    <string name="hidden_toast">%1$s hidden. Long-press OK on any app to bring it back.</string>
+    <string name="hidden_toast">%1$s hidden. Bring it back from Home screen options in the top menu.</string>
     <string name="unhidden_toast">%1$s is back</string>
 </resources>

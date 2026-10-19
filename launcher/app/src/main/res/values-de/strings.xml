@@ -24,7 +24,10 @@
     <string name="menu_art_on">Hintergrundbilder: An</string>
     <string name="menu_art_off">Hintergrundbilder: Aus</string>
     <string name="menu_app_info">App-Info</string>
+    <string name="menu_uninstall">Deinstallieren</string>
+    <string name="home_options">Startbildschirm-Optionen</string>
+    <string name="no_hidden_apps">Keine ausgeblendeten Apps</string>
     <string name="move_hint">%1$s mit den Pfeiltasten verschieben, dann OK drücken</string>
-    <string name="hidden_toast">%1$s ausgeblendet. OK lange drücken, um es zurückzuholen.</string>
+    <string name="hidden_toast">%1$s ausgeblendet. Über Startbildschirm-Optionen im Menü oben zurückholen.</string>
     <string name="unhidden_toast">%1$s ist wieder da</string>
 </resources>
