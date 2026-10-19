@@ -17,6 +17,8 @@
     <string name="cant_open">Can\'t open %1$s</string>
     <string name="date_format">EEEE  d MMMM</string>
     <string name="dream_name">Clock</string>
+    <string name="gear_service_name">Remote gear button</string>
+    <string name="gear_service_description">Opens the home screen menu or Settings when you press the gear button on the remote. Reads only that button.</string>
     <string name="menu_move">Move</string>
     <string name="menu_hide">Hide</string>
     <string name="menu_hidden_apps">Hidden apps (%1$d)</string>

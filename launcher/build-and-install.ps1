@@ -41,6 +41,10 @@ if ("$out" -match 'Error') { throw 'could not set the new launcher as home; the 
 @(
     'pm grant com.gathin.tvhome android.permission.ACCESS_FINE_LOCATION 2>/dev/null; echo location-granted',
     'cmd package set-home-activity --user 0 com.gathin.tvhome',
-    "pm disable-user --user 0 $StockLauncher"
+    "pm disable-user --user 0 $StockLauncher",
+    # Keep the remote's gear button working without the stock launcher (GearKeyService): add it to the
+    # enabled accessibility services, keeping any already on. TCL firmware also refuses to start the
+    # service without its APP_AUTO_START app-op; elsewhere that op doesn't exist and the line is a no-op.
+    'cmd appops set com.gathin.tvhome APP_AUTO_START allow 2>/dev/null; s=$(settings get secure enabled_accessibility_services); case "$s" in *GearKeyService*) ;; ""|null) settings put secure enabled_accessibility_services com.gathin.tvhome/.GearKeyService ;; *) settings put secure enabled_accessibility_services "$s:com.gathin.tvhome/.GearKeyService" ;; esac; settings put secure accessibility_enabled 1; echo gear-button-enabled'
 ) | & $py -I ..\tools\tv.py --batch
 Write-Host 'Installed. Press Home on the remote to see it.'

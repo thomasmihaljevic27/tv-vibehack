@@ -45,6 +45,7 @@ import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -79,7 +80,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private int movingPos = -1;
     /** The OK press that ended a move must not also open the app on release. */
     private boolean swallowConfirmUp;
-    private PopupWindow tileMenu;
+    private PopupWindow tileMenu, topMenu;
     private ValueAnimator wiggle;
     private ArtSlideshow art;
     // Static so they survive the activity being destroyed while another app is open (low-memory TVs,
@@ -213,9 +214,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         registerReceiver(screenOn, new IntentFilter(Intent.ACTION_SCREEN_ON));
     }
 
+    /** The home screen while it's in front, for GearKeyService; null otherwise. Main thread only. */
+    private static WeakReference<MainActivity> front = new WeakReference<>(null);
+
+    static MainActivity inFront() {
+        return front.get();
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
+        front = new WeakReference<>(this);
         glassShown = false;
         glass.setAlpha(0f);
         heroShown = false;
@@ -239,6 +248,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onPause() {
         super.onPause();
+        if (front.get() == this) front = new WeakReference<>(null);
         if (movingPos >= 0) endMove();
         art.stop();
     }
@@ -746,11 +756,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         rows.getChildAt(0).requestFocus();
     }
 
+    /** The remote's gear button (GearKeyService): open the top menu, or close it if it's already open. */
+    void toggleTopMenu() {
+        if (topMenu != null && topMenu.isShowing()) topMenu.dismiss();
+        else showTopMenu();
+    }
+
     /** The menu under the top-right button: Inputs (opens the inputs list), Wi-Fi with the network name, Settings. */
     private void showTopMenu() {
         updateWifiLabel();
         LinearLayout rows = newMenu();
         PopupWindow popup = popupFor(rows);
+        topMenu = popup;
         addInputRow(rows, popup, R.drawable.ic_input, getString(R.string.inputs), -1,
                 () -> btnMenu.post(this::showInputs));
         addInputRow(rows, popup, R.drawable.ic_wifi, getString(R.string.wifi), -1,

@@ -218,6 +218,10 @@ Things that bit us or contributors, so they don't bite you.
   Home before `screencap`.
 - **Disable the stock launcher only after the new one is installed**, or the Home button lands on
   a factory test app.
+- **The remote's gear button stops working** on Google TV once launcherx is disabled: it opens
+  Google's dashboard, which lives in launcherx. The launcher's "Remote gear button" accessibility
+  service takes over (menu on the home screen, Settings elsewhere); the install script turns it on.
+  On TCL it also needs `cmd appops set com.gathin.tvhome APP_AUTO_START allow`, which the script runs.
 - **No on-screen keyboard** after switching launchers, seen on Xiaomi: the default input method
   pointed at a Baidu keyboard that isn't installed. Fix:
   `tools/tv.py 'ime set com.google.android.inputmethod.latin/com.android.inputmethod.latin.LatinIME'`

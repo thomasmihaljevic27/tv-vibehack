@@ -27,6 +27,12 @@
 #   instead of a third-party launcher (priority 0); set-home-activity and the HOME role don't override
 #   it. That's why setupwraith is listed below. Run launcher/build-and-install after applying this list.
 # - The TV dropped off Wi-Fi/ADB for about a minute twice during the session (no reboot). Wait and retry.
+# - The remote's gear button sends KEYCODE_NOTIFICATION, which opens Google TV's dashboard panel inside
+#   launcherx; with launcherx disabled it does nothing. launcher/ catches it with an accessibility
+#   service (GearKeyService) that build-and-install enables. TCL's TclAppBoot blocks that service until
+#   the launcher has the APP_AUTO_START app-op: cmd appops set com.gathin.tvhome APP_AUTO_START allow
+# - The remote is Bluetooth (BT_RC813_MG). `input keyevent` and sendevent can't stand in for it when
+#   testing the gear button: injected keys skip accessibility filters, and /dev/input is SELinux-locked.
 
 # TCL content, ads and promos
 com.tcl.tv.plus                        # TCL TV+ content app
