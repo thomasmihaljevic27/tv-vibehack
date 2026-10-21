@@ -1,5 +1,6 @@
 package com.gathin.tvhome;
 
+import android.app.ActivityOptions;
 import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Context;
@@ -319,13 +320,15 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         });
     }
 
+    /** Opens the app, fading it in over the launcher. */
     private void launch(Entry e) {
         Intent i = new Intent(Intent.ACTION_MAIN)
                 .addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
                 .setComponent(e.component)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+        ActivityOptions fade = ActivityOptions.makeCustomAnimation(ctx, R.anim.fade_in, R.anim.fade_out);
         try {
-            ctx.startActivity(i);
+            ctx.startActivity(i, fade.toBundle());
             if (listener != null) listener.onAppLaunch();
         } catch (Exception ex) {
             Toast.makeText(ctx, ctx.getString(R.string.cant_open, e.label), Toast.LENGTH_SHORT).show();

@@ -55,6 +55,8 @@ final class ArtSlideshow {
     static final long SLIDE_MS = 10L * 60 * 1000;
     /** Retry delay when nothing could be loaded at all (first run offline). */
     private static final long RETRY_MS = 60_000L;
+    /** Retries while nothing could be shown yet: soon at first (a just-enabled slideshow), then RETRY_MS. */
+    private static final long[] FIRST_RETRIES_MS = {5_000L, 15_000L};
     private static final long FADE_MS = 1_600L;
     /** How long the painting's title and artist stay up after it appears. */
     private static final long CAPTION_MS = 10_000L;
@@ -95,6 +97,8 @@ final class ArtSlideshow {
     private final List<Art> queue = new ArrayList<>();   // io thread only
     private ImageView front, back;
     private boolean running, loading, hasImage;
+    /** Failed attempts since the last image was shown, for FIRST_RETRIES_MS. */
+    private int failures;
     /** Time left on the current painting; kept across stop()/start() so leaving the dock doesn't reset it. */
     private long remainingMs;
     private long dueAt;
@@ -162,6 +166,27 @@ final class ArtSlideshow {
     void setEnabled(boolean on) {
         prefs.edit().putBoolean(PREF, on).apply();
         if (!on) stop();
+    }
+
+    /** Fetch the first painting now, so it can show the moment start() is called (art just switched on). */
+    void prefetch() {
+        if (!isEnabled() || hasImage || loading) return;
+        io.execute(() -> {
+            try {
+                Art art = nextArt();
+                if (art == null) return;
+                image(art);
+                queue.add(art);   // next for loadNext(), now from the cache
+            } catch (Exception ignored) {
+                // offline: loadNext() tries again when the art is shown
+            }
+        });
+    }
+
+    private long retryDelay() {
+        long ms = failures < FIRST_RETRIES_MS.length ? FIRST_RETRIES_MS[failures] : RETRY_MS;
+        failures++;
+        return ms;
     }
 
     /** Show the art (the dock is focused). Does nothing while disabled. */
@@ -259,9 +284,10 @@ final class ArtSlideshow {
                 loading = false;
                 if (result != null) {
                     accent = color;
+                    failures = 0;
                     show(result, shown);
                 }
-                else if (running) schedule(hasImage ? slideMs : RETRY_MS);
+                else if (running) schedule(hasImage ? slideMs : retryDelay());
             });
         });
     }

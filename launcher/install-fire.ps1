@@ -4,10 +4,12 @@
 # The first run backs up package lists and settings to backup\fire-tv; restore-fire.ps1 undoes every change.
 # Uses Android Studio's bundled JDK and the default SDK location unless JAVA_HOME / ANDROID_HOME are set.
 #
-# Usage: launcher\install-fire.ps1 -TvHost 192.168.1.60 [-BackupDir backup\fire-tv]
+# Usage: launcher\install-fire.ps1 -TvHost 192.168.1.60 [-BackupDir backup\fire-tv] [-ClockScreensaver]
+#   -ClockScreensaver  also install the Clock screensaver (launcher/clock, its own package) and select it
 param(
     [string]$TvHost = $env:TV_HOST,
-    [string]$BackupDir
+    [string]$BackupDir,
+    [switch]$ClockScreensaver
 )
 $ErrorActionPreference = 'Stop'
 # Pipe plain UTF-8 to native commands; the default here prepends a BOM that corrupts the first command.
@@ -57,7 +59,9 @@ if (-not (Test-Path local.properties)) {
     "sdk.dir=$($sdk -replace '\\', '\\')" | Out-File -Encoding ascii local.properties
 }
 
-.\gradlew.bat assembleFireDebug -q --console=plain
+$tasks = @('assembleFireDebug')
+if ($ClockScreensaver) { $tasks += ':clock:assembleDebug' }
+.\gradlew.bat @tasks -q --console=plain
 if ($LASTEXITCODE -ne 0) { throw 'Gradle build failed' }
 
 $apk = 'app\build\outputs\apk\fire\debug\app-fire-debug.apk'
@@ -91,4 +95,15 @@ if ("$out" -notmatch 'Success') { throw 'pm install failed; nothing else was cha
     # only acts when Amazon's home comes to the front, so leave it for Fire's settings first.
     'am start -a android.intent.action.MAIN -c android.intent.category.LEANBACK_SETTINGS >/dev/null; sleep 2; input keyevent KEYCODE_HOME; sleep 3; dumpsys activity activities | grep -m1 mResumedActivity'
 ) | & $py -I $tv --batch
+
+# Fire OS force-stops a screensaver's app when it ends, so the Clock lives in its own package
+# (com.gathin.tvhome.clock): stopping it leaves HomeGuard running.
+if ($ClockScreensaver) {
+    & $py -I ..\tools\b64push.py 'clock\build\outputs\apk\debug\clock-debug.apk' /data/local/tmp/tvclock.apk
+    if ($LASTEXITCODE -ne 0) { throw 'Clock APK upload failed' }
+    @(
+        'pm install -r /data/local/tmp/tvclock.apk; rm -f /data/local/tmp/tvclock.apk',
+        'settings put secure screensaver_components com.gathin.tvhome.clock/com.gathin.tvhome.ClockDream; echo "screensaver_components=$(settings get secure screensaver_components)"'
+    ) | & $py -I $tv --batch
+}
 Write-Host 'Installed. Press Home on the remote to see it; launcher\restore-fire.ps1 undoes everything.'

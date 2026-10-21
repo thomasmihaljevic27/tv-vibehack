@@ -97,6 +97,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean appsDirty = true;
     /** Paused for another app or screen since the last resume: coming back plays the home sound. */
     private boolean returning;
+    /** Resumed before: coming back fades the home screen in; only the first start lets the tiles rise in. */
+    private boolean shownBefore;
     private final BroadcastReceiver packageChanges = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -271,7 +273,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             appsDirty = false;
             adapter.reload();
         }
-        grid.scheduleLayoutAnimation();
+        if (shownBefore) {
+            // On a layer: one render of the whole screen, then only its opacity changes per frame.
+            root.setAlpha(0f);
+            root.animate().alpha(1f).setDuration(250).withLayer().start();
+        } else {
+            grid.scheduleLayoutAnimation();
+            shownBefore = true;
+        }
         updateWifiLabel();
 
         // Return to the app we left from, or the same slot if that app is gone. Always refocus: after
@@ -870,7 +879,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         boolean artOn = art.isEnabled();
         addInputRow(rows, popup, R.drawable.ic_art, getString(artOn ? R.string.menu_art_on : R.string.menu_art_off), -1, () -> {
             art.setEnabled(!artOn);
+            // Shown behind the dock: now if that's where focus was, else ready for when it gets there.
             if (!artOn && heroShown) art.start();
+            else if (!artOn) art.prefetch();
         });
         boolean soundsOn = sound.isEnabled();
         addInputRow(rows, popup, R.drawable.ic_sound,

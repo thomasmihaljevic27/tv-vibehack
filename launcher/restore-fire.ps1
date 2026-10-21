@@ -3,7 +3,8 @@
 # before its first run. Neither script ever disables or uninstalls com.amazon.tv.launcher.
 #
 # Usage: launcher\restore-fire.ps1 -TvHost 192.168.1.60 [-BackupDir backup\fire-tv] [-KeepApp]
-#   -KeepApp  leave com.gathin.tvhome installed (HOME still goes back to Amazon); by default it is uninstalled
+#   -KeepApp  leave com.gathin.tvhome (and the Clock screensaver) installed (HOME still goes back to Amazon);
+#             by default both are uninstalled
 param(
     [string]$TvHost = $env:TV_HOST,
     [string]$BackupDir,
@@ -61,6 +62,7 @@ if ($KeepApp) {
     $cmds += 'pm revoke com.gathin.tvhome android.permission.ACCESS_FINE_LOCATION 2>/dev/null; echo location-revoked'
 } else {
     $cmds += 'pm uninstall com.gathin.tvhome'
+    $cmds += 'pm list packages | grep -q "^package:com.gathin.tvhome.clock$" && pm uninstall com.gathin.tvhome.clock || echo no-clock-screensaver'
 }
 $cmds += @(
     'am start -a android.intent.action.MAIN -c android.intent.category.HOME >/dev/null; echo home-sent',

@@ -14,3 +14,5 @@ dependencyResolutionManagement {
 }
 rootProject.name = "tvhome"
 include ':app'
+// The Clock screensaver as its own package, for Fire TV (clock/build.gradle).
+include ':clock'

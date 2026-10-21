@@ -126,11 +126,11 @@ public final class HomeGuard extends AccessibilityService {
 
     @Override
     protected void onServiceConnected() {
-        // The overlay window exists from the start; a GONE root keeps it without a surface, so it costs
-        // nothing while an app plays.
+        // The overlay window exists from the start. An INVISIBLE root keeps its surface but hides it, so it
+        // isn't composited while an app plays and needn't be rebuilt (about 0.2 s) on every HOME press.
         View view = new View(this);
         view.setBackgroundColor(Color.BLACK);
-        view.setVisibility(View.GONE);
+        view.setVisibility(View.INVISIBLE);
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT,
                 WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
@@ -257,7 +257,7 @@ public final class HomeGuard extends AccessibilityService {
     private void uncover() {
         handler.removeCallbacks(uncover);
         if (cover == null || cover.getVisibility() != View.VISIBLE) return;
-        cover.setVisibility(View.GONE);
+        cover.setVisibility(View.INVISIBLE);
         long now = SystemClock.uptimeMillis();
         Log.i(TAG, "HOME: Amazon's home covered " + (now - seenAt) + " ms; launched after " + (launchedAt - seenAt)
                 + " ms, ours resumed after " + (resumedAt > seenAt ? (resumedAt - seenAt) + " ms" : "-"));
@@ -272,11 +272,14 @@ public final class HomeGuard extends AccessibilityService {
         cancelLaunch(this);
         if (cover == null || cover.getVisibility() != View.VISIBLE) return;
         View decor = home.getWindow().getDecorView();
-        // post: right after onResume the window may not be attached yet.
-        decor.post(() -> {
+        Runnable onNextFrame = () -> {
             decor.getViewTreeObserver().registerFrameCommitCallback(() -> handler.postDelayed(uncover, SETTLE_MS));
             decor.invalidate();
-        });
+        };
+        // Coming back, the window is attached and the very next frame is our home: uncover after it. A first
+        // start attaches the window only after onResume, hence post.
+        if (decor.isAttachedToWindow()) onNextFrame.run();
+        else decor.post(onNextFrame);
     }
 
     @Override

@@ -1,0 +1,48 @@
+plugins {
+    id 'com.android.application'
+}
+
+// The Clock screensaver on its own, for Fire TV (install-fire.ps1 -ClockScreensaver). Fire OS force-stops a
+// screensaver's app when the screensaver ends; inside the launcher's package that would stop HomeGuard too, so
+// on Fire it ships as this separate package. It builds the launcher's own ClockDream and resources unchanged.
+def clockSrc = file("$buildDir/generated/clockSrc")
+
+android {
+    namespace 'com.gathin.tvhome'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.gathin.tvhome.clock'
+        minSdk 26
+        targetSdk 29
+        versionCode 1
+        versionName '1.0'
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = [clockSrc]
+            res.srcDirs = ['../app/src/main/res']
+        }
+    }
+
+    lint {
+        disable 'ExpiredTargetSdkVersion'   // sideloaded, see app/build.gradle
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+tasks.register('copyClockDream', Copy) {
+    from('../app/src/main/java') {
+        include 'com/gathin/tvhome/ClockDream.java'
+    }
+    into clockSrc
+}
+tasks.named('preBuild') {
+    dependsOn 'copyClockDream'
+}

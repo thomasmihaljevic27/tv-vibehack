@@ -229,8 +229,11 @@ Fire OS needs the second one because it differs in four ways:
   Amazon apps (Silk, the Appstore) declare only a phone launcher entry; the fire build lists them,
   the Appstore with its icon drawn as a banner. On Fire OS 8 the Appstore is a tab of Amazon's home,
   where HOME can't be caught, so `HomeGuard` leaves it open and **Back** brings you home.
-- **No gear button, no Clock screensaver.** Fire OS does run a third-party screensaver, but it
-  force-stops the screensaver's app when it ends, which would also stop `HomeGuard`.
+- **No gear button; the Clock screensaver is its own app.** Fire OS runs a third-party screensaver
+  but force-stops the screensaver's app when it ends, which inside the launcher would also stop
+  `HomeGuard`. So on Fire the Clock ships as a separate package, `com.gathin.tvhome.clock`
+  ([`launcher/clock`](launcher/clock)): `install-fire.ps1 -ClockScreensaver` installs and selects it.
+  The Art screensaver stays Android TV only.
 
 Everything else is the same launcher as on Android TV: five columns, the tile menu (Move, Hide,
 Uninstall), Home screen options, the optional background art with its glow behind the grid, and
@@ -242,7 +245,7 @@ then build and install. The script backs up packages and settings to `backup\fir
 touches Amazon's launcher. `restore-fire.ps1` undoes everything (`-KeepApp` leaves the launcher installed).
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File launcher\install-fire.ps1 -TvHost 192.168.1.60
+powershell -ExecutionPolicy Bypass -File launcher\install-fire.ps1 -TvHost 192.168.1.60 [-ClockScreensaver]
 powershell -ExecutionPolicy Bypass -File launcher\restore-fire.ps1 -TvHost 192.168.1.60
 ```
 
